@@ -10,7 +10,7 @@ import java.util.Set;
 
 /**
  * Offline classifier: a label applies when the product text contains the label name or any
- * of its keywords. Accents and case are ignored, so "orgánico" matches the keyword "organico".
+ * of its keywords. Accents, case, gender and plural are ignored.
  */
 @Component
 public class KeywordEcoLabelMatcher {
@@ -30,12 +30,17 @@ public class KeywordEcoLabelMatcher {
         return matches;
     }
 
+    /**
+     * Lower case, without accents and without Spanish gender or plural endings, so
+     * "orgánica", "orgánicos" and "organico" all become "organic".
+     */
     static String normalize(String value) {
         if (value == null) {
             return "";
         }
         return Normalizer.normalize(value, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
-                .toLowerCase();
+                .toLowerCase()
+                .replaceAll("(?<=\\p{L}{3})(os|as|es|o|a)\\b", "");
     }
 }
