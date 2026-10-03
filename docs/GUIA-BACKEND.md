@@ -222,3 +222,44 @@ Primero registrar un comerciante (`"rol": "COMERCIANTE"`), hacer login y usar su
 | 13 | `GET /api/busqueda/cercanos?lat=-12.1&lng=-77.0&radio=60` | sin token | — | **400** "El radio debe ser mayor que 0 y como máximo 50 km" (TS03) |
 
 **Resultado obtenido (2026-10-03):** las 13 pruebas respondieron con el código esperado.
+
+---
+
+## Fase 6 – Productos, categorías, búsqueda y filtros (TS04, US06, US07, US10, US11, US12, US15, US16, US20, US29)
+
+| Archivo | Carpeta | Para qué sirve |
+|---|---|---|
+| `ProductoDTO.java` | `dto` | Datos del producto. `ecoEtiquetaIds` es opcional: si se envía, las Eco-Etiquetas quedan como "manual" (US16). |
+| `ProductoRespuestaDTO.java` | `dto` | Detalle con comercio, categoría y Eco-Etiquetas con descripción y criterio (US11, US14). Incluye `avisoEcoEtiquetas` si no tiene ninguna. |
+| `ProductoComparadoDTO.java` | `dto` | Producto y distancia (omitida si no se envía la ubicación, US12). |
+| `ProductoRepository.java` | `repository` | Catálogo por comercio, productos del comerciante y la consulta `buscar` (nombre, categoría y Eco-Etiqueta, sin distinguir mayúsculas). |
+| `ProductoService.java` | `services` | Solo el dueño publica, edita o elimina (403 para otro comerciante). Eliminar es lógico (`activo = false`) para conservar las visitas. Un producto eliminado o de un comercio no aprobado responde 404. |
+| `ProductoController.java` | `controller` | `/api/productos`, `/api/productos/mis-productos`, `/api/productos/comparar` |
+| `ComercioController.java` | `controller` | Nuevo `GET /api/comercios/{id}/productos` (catálogo, US10). |
+| `BusquedaController.java` | `controller` | Nuevos `GET /api/busqueda/productos` y `GET /api/busqueda/comercios?texto=` |
+
+### Pruebas en Postman
+
+Token del comerciante dueño del comercio aprobado en la Fase 5.
+
+| # | Método y URL | Token | Body | Respuesta esperada |
+|---|---|---|---|---|
+| 1 | `POST /api/productos` | comerciante | `{"comercioId": 1, "categoriaId": 1, "nombre": "Quinua blanca", "descripcion": "Quinua orgánica de Puno vendida a granel", "precio": 12.50, "stock": 40}` | **201** |
+| 2 | `POST /api/productos` | comerciante | `{..., "ecoEtiquetaIds": [4]}` | **201** con `motorClasificacion: "manual"` |
+| 3 | `POST /api/productos` | comerciante | `"precio": -1, "stock": -3` | **400** con `errores.precio` y `errores.stock` (US20) |
+| 4 | `POST /api/productos` | otro comerciante | producto en el comercio 1 | **403** (US20, escenario 3) |
+| 5 | `POST /api/productos` | comerciante | `"categoriaId": 999` | **404** |
+| 6 | `GET /api/productos/{id}` | sin token | — | **200** con Eco-Etiquetas y su significado (US11, US14) |
+| 7 | `GET /api/comercios/1/productos` | sin token | — | **200** catálogo (US10) |
+| 8 | `GET /api/busqueda/productos?nombre=QUINUA` | sin token | — | **200** (no distingue mayúsculas, US06) |
+| 9 | `GET /api/busqueda/productos?categoria=Alimentos` | sin token | — | **200** solo de esa categoría (US07) |
+| 10 | `GET /api/busqueda/productos?ecoEtiqueta=Artesanal` | sin token | — | **200** solo con esa Eco-Etiqueta (US15) |
+| 11 | `GET /api/busqueda/productos?nombre=zzz` | sin token | — | **200** con `[]` (sin resultados) |
+| 12 | `GET /api/busqueda/comercios?texto=verde` | sin token | — | **200** con "Granel Verde" (US06, escenario 3) |
+| 13 | `GET /api/productos/comparar?ids=2,3&lat=-12.1020&lng=-77.0420` | sin token | — | **200** con precio, comercio, Eco-Etiquetas y `distanciaKm` |
+| 14 | `GET /api/productos/comparar?ids=2,3` | sin token | — | **200** sin `distanciaKm` (US12, escenario 3) |
+| 15 | `GET /api/productos/comparar?ids=2` | sin token | — | **400** "Debes elegir entre 2 y 4 productos…" |
+| 16 | `PUT /api/productos/{id}` | otro comerciante | — | **403** |
+| 17 | `DELETE /api/productos/{id}` | dueño o admin | — | **204**; luego `GET` del producto → **404** |
+
+**Resultado obtenido (2026-10-03):** las pruebas 1 a 16 respondieron con el código esperado (la 17 se cubre en la Fase 10).
