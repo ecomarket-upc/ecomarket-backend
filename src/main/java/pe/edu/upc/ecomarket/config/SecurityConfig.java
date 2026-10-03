@@ -35,6 +35,21 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    /** Consultas que cualquiera puede hacer sin iniciar sesión. */
+    private static final String[] RUTAS_GET_PUBLICAS = {
+            "/api/categorias/**",
+            "/api/eco-etiquetas/**",
+            "/api/comercios/**",
+            "/api/busqueda/**"
+    };
+
+    /** Rutas GET dentro de las públicas que sí necesitan token. */
+    private static final String[] RUTAS_GET_PRIVADAS = {
+            "/api/comercios/mis-comercios",
+            "/api/comercios/pendientes",
+            "/api/comercios/*/estadisticas"
+    };
+
     private final JwtFiltro jwtFiltro;
     private final ErroresSeguridad erroresSeguridad;
 
@@ -56,7 +71,8 @@ public class SecurityConfig {
                 .sessionManagement(sesion -> sesion.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/error").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/categorias/**", "/api/eco-etiquetas/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, RUTAS_GET_PRIVADAS).authenticated()
+                        .requestMatchers(HttpMethod.GET, RUTAS_GET_PUBLICAS).permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(erroresSeguridad)
