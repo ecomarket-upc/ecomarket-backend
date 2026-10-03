@@ -181,3 +181,44 @@ categorías y Eco-Etiquetas, y en la gestión de usuarios.
 12. En pgAdmin, la tabla `usuarios` muestra la contraseña como `$2a$10$...` (hash BCrypt), nunca en texto plano.
 
 **Resultado obtenido (2026-10-03):** todas las pruebas respondieron con el código esperado.
+
+---
+
+## Fase 5 – Comercios y geolocalización (TS02, TS03, TS10, US05, US07, US08, US19, US21, US30)
+
+| Archivo | Carpeta | Para qué sirve |
+|---|---|---|
+| `ComercioDTO.java` | `dto` | Datos para registrar o editar un comercio. Latitud y longitud son opcionales. |
+| `ComercioRespuestaDTO.java` | `dto` | Detalle del comercio que devuelve la API (incluye `estado`). |
+| `ValidacionComercioDTO.java` | `dto` | `{"estado": "APPROVED"}` o `{"estado": "REJECTED", "motivo": "..."}`. |
+| `ComercioCercanoDTO.java`, `CoordenadasDTO.java` | `dto` | Comercio con su distancia en km; latitud y longitud de la geocodificación. |
+| `ComercioRepository.java` | `repository` | Consultas por estado, distrito, dueño y por un cuadrado de latitud y longitud. |
+| `GeocodificacionService.java` | `services` | Llama a OpenStreetMap Nominatim (gratis, sin API key) para convertir la dirección en coordenadas. Tiempo máximo: 5 s. |
+| `ComercioService.java` | `services` | Reglas: el comercio nace `PENDING`; solo el dueño o el admin lo editan o eliminan (403); un comercio no aprobado responde 404 al público; rechazar exige motivo; al corregir un rechazado vuelve a `PENDING`; búsqueda por cercanía con la fórmula de Haversine (radio máximo 50 km). |
+| `ComercioController.java` | `controller` | `/api/comercios` |
+| `BusquedaController.java` | `controller` | `GET /api/busqueda/cercanos?lat&lng&radio` |
+| `SecurityConfig.java` | `config` | Hace públicas las consultas GET de comercios y búsqueda (salvo `mis-comercios`, `pendientes` y estadísticas). |
+
+> El mapa en sí lo dibuja el frontend; el backend entrega latitud, longitud y distancia.
+
+### Pruebas en Postman
+
+Primero registrar un comerciante (`"rol": "COMERCIANTE"`), hacer login y usar su token.
+
+| # | Método y URL | Token | Body | Respuesta esperada |
+|---|---|---|---|---|
+| 1 | `POST /api/comercios` | comerciante | `{"nombre": "Granel Verde", "descripcion": "Tienda a granel", "telefono": "987654321", "horario": "Lun-Sáb 9:00-19:00", "direccion": "Avenida José Larco 345", "distrito": "Miraflores", "ciudad": "Lima"}` | **201**, `estado: "PENDING"` y latitud/longitud calculadas |
+| 2 | `POST /api/comercios` | consumidor | el mismo | **403** |
+| 3 | `POST /api/comercios` | comerciante | dirección inexistente y sin coordenadas | **400** "No se pudo ubicar la dirección. Indica la latitud y la longitud…" (TS10, escenario 2) |
+| 4 | `GET /api/comercios/{id}` | sin token | — | **404** (aún no aprobado, US08) |
+| 5 | `GET /api/comercios/{id}` | el dueño | — | **200** |
+| 6 | `PUT /api/comercios/{id}` | otro comerciante | datos con `latitud` y `longitud` | **403** (TS02, escenario 2) |
+| 7 | `GET /api/comercios/pendientes` | admin | — | **200** |
+| 8 | `PATCH /api/comercios/{id}/validacion` | admin | `{"estado": "REJECTED"}` | **400** "Debes indicar el motivo del rechazo" |
+| 9 | `PATCH /api/comercios/{id}/validacion` | admin | `{"estado": "APPROVED"}` | **200**, `estado: "APPROVED"` (TS02, escenario 3) |
+| 10 | `GET /api/comercios` | sin token | — | **200**, ya aparece el comercio |
+| 11 | `GET /api/busqueda/cercanos?lat=-12.1020&lng=-77.0420&radio=5` | sin token | — | **200** con el comercio y `distanciaKm` ≈ 2.5 |
+| 12 | `GET /api/busqueda/cercanos?lat=-12.1020&lng=-77.0420&radio=1` | sin token | — | **200** con `[]` (fuera del radio, US07) |
+| 13 | `GET /api/busqueda/cercanos?lat=-12.1&lng=-77.0&radio=60` | sin token | — | **400** "El radio debe ser mayor que 0 y como máximo 50 km" (TS03) |
+
+**Resultado obtenido (2026-10-03):** las 13 pruebas respondieron con el código esperado.
