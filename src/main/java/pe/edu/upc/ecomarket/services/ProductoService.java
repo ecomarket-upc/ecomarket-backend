@@ -3,6 +3,7 @@ package pe.edu.upc.ecomarket.services;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import pe.edu.upc.ecomarket.dto.ClasificacionDTO;
 import pe.edu.upc.ecomarket.dto.ProductoComparadoDTO;
 import pe.edu.upc.ecomarket.dto.ProductoDTO;
 import pe.edu.upc.ecomarket.dto.ProductoRespuestaDTO;
@@ -13,6 +14,7 @@ import pe.edu.upc.ecomarket.models.Comercio;
 import pe.edu.upc.ecomarket.models.EcoEtiqueta;
 import pe.edu.upc.ecomarket.models.EstadoComercio;
 import pe.edu.upc.ecomarket.models.Producto;
+import pe.edu.upc.ecomarket.repository.EcoEtiquetaRepository;
 import pe.edu.upc.ecomarket.repository.ProductoRepository;
 import pe.edu.upc.ecomarket.security.UsuarioActual;
 
@@ -36,8 +38,13 @@ public class ProductoService {
     private final CategoriaService categoriaService;
     private final EcoEtiquetaService ecoEtiquetaService;
     private final UsuarioActual usuarioActual;
+    private final ClasificadorService clasificadorService;
+    private final EcoEtiquetaRepository ecoEtiquetaRepository;
 
-    /** US20: el comerciante publica en uno de sus comercios. */
+    /**
+     * US20: el comerciante publica en uno de sus comercios. Si no eligió Eco-Etiquetas, el sistema
+     * las asigna automáticamente con IA (US13, TS06 escenario 1).
+     */
     @Transactional
     public ProductoRespuestaDTO crear(ProductoDTO dto) {
         Comercio comercio = comercioService.buscar(dto.getComercioId());
@@ -47,7 +54,32 @@ public class ProductoService {
         Producto producto = new Producto();
         producto.setComercio(comercio);
         copiarDatos(dto, producto);
+        if (dto.getEcoEtiquetaIds() == null) {
+            aplicarClasificacion(producto);
+        }
         return aDTO(productoRepository.save(producto));
+    }
+
+    /** TS06 escenario 2: el dueño vuelve a clasificar su producto. */
+    @Transactional
+    public ClasificacionDTO clasificar(Long id) {
+        Producto producto = buscarPropio(id, "Solo puedes clasificar tus propios productos");
+        String motor = aplicarClasificacion(producto);
+        productoRepository.save(producto);
+        String mensaje = producto.getEcoEtiquetas().isEmpty()
+                ? "La descripción no menciona características sostenibles: no se asignaron Eco-Etiquetas"
+                : "Se asignaron " + producto.getEcoEtiquetas().size() + " Eco-Etiquetas";
+        return new ClasificacionDTO(aDTO(producto), motor, mensaje);
+    }
+
+    /** Solo se ofrecen las Eco-Etiquetas activas (US28, escenario 3). */
+    private String aplicarClasificacion(Producto producto) {
+        String texto = producto.getNombre() + ". " + (producto.getDescripcion() == null ? "" : producto.getDescripcion());
+        ClasificadorService.Resultado resultado = clasificadorService.clasificar(texto,
+                ecoEtiquetaRepository.findByActivaTrueOrderByNombreAsc());
+        producto.setEcoEtiquetas(new HashSet<>(resultado.ecoEtiquetas()));
+        producto.setMotorClasificacion(resultado.motor());
+        return resultado.motor();
     }
 
     /** US11: un producto eliminado o de un comercio no aprobado "no existe" para el público. */
