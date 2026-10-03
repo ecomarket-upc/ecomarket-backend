@@ -7,12 +7,15 @@ import pe.edu.upc.ecomarket.dto.ComercioCercanoDTO;
 import pe.edu.upc.ecomarket.dto.ComercioDTO;
 import pe.edu.upc.ecomarket.dto.ComercioRespuestaDTO;
 import pe.edu.upc.ecomarket.dto.CoordenadasDTO;
+import pe.edu.upc.ecomarket.dto.PromocionRespuestaDTO;
 import pe.edu.upc.ecomarket.dto.ValidacionComercioDTO;
 import pe.edu.upc.ecomarket.exceptions.AccesoDenegadoException;
 import pe.edu.upc.ecomarket.exceptions.RecursoNoEncontradoException;
 import pe.edu.upc.ecomarket.exceptions.ReglaNegocioException;
 import pe.edu.upc.ecomarket.models.Comercio;
 import pe.edu.upc.ecomarket.models.EstadoComercio;
+import pe.edu.upc.ecomarket.models.Promocion;
+import pe.edu.upc.ecomarket.models.Suscripcion;
 import pe.edu.upc.ecomarket.models.Usuario;
 import pe.edu.upc.ecomarket.repository.ComercioRepository;
 import pe.edu.upc.ecomarket.repository.FavoritoRepository;
@@ -72,10 +75,6 @@ public class ComercioService {
             throw new RecursoNoEncontradoException("Comercio", id);
         }
         return comercio;
-    }
-
-    public ComercioRespuestaDTO obtener(Long id) {
-        return aDTO(obtenerVisible(id));
     }
 
     /** US06, escenario 3. */
@@ -174,6 +173,21 @@ public class ComercioService {
         return Math.round(km * 100) / 100.0;
     }
 
+    /** Tiene un plan premium activo (US25, TS14). */
+    public boolean esPremium(Long comercioId) {
+        return suscripcionRepository.findByComercioIdOrderByFechaFinDesc(comercioId).stream()
+                .anyMatch(Suscripcion::estaActiva);
+    }
+
+    /** Solo las promociones vigentes; las vencidas ya no se muestran (US26, escenario 3). */
+    public List<PromocionRespuestaDTO> promocionesVigentes(Long comercioId) {
+        return promocionRepository.findByComercioIdOrderByFechaInicioAsc(comercioId).stream()
+                .filter(Promocion::estaVigente)
+                .map(p -> new PromocionRespuestaDTO(p.getId(), comercioId, p.getTitulo(), p.getDescripcion(),
+                        p.getFechaInicio(), p.getFechaFin()))
+                .toList();
+    }
+
     public Comercio buscar(Long id) {
         return comercioRepository.findById(id).orElseThrow(() -> new RecursoNoEncontradoException("Comercio", id));
     }
@@ -239,6 +253,8 @@ public class ComercioService {
         dto.setPropietarioId(comercio.getPropietario().getId());
         dto.setPropietarioNombre(comercio.getPropietario().getNombres() + " " + comercio.getPropietario().getApellidos());
         dto.setFechaRegistro(comercio.getFechaRegistro());
+        dto.setPremium(esPremium(comercio.getId()));
+        dto.setPromociones(promocionesVigentes(comercio.getId()));
         return dto;
     }
 }
