@@ -6,6 +6,10 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -52,6 +56,23 @@ public class ManejadorExcepciones {
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ErrorDTO> parametroFaltante(MissingServletRequestParameterException ex, HttpServletRequest request) {
         return responder(HttpStatus.BAD_REQUEST, "Falta el parámetro obligatorio '" + ex.getParameterName() + "'", request, null);
+    }
+
+    /** Login fallido o cuenta desactivada: 401 con el motivo (TS01). */
+    @ExceptionHandler({BadCredentialsException.class, DisabledException.class})
+    public ResponseEntity<ErrorDTO> loginFallido(AuthenticationException ex, HttpServletRequest request) {
+        return responder(HttpStatus.UNAUTHORIZED, ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorDTO> sinSesion(AuthenticationException ex, HttpServletRequest request) {
+        return responder(HttpStatus.UNAUTHORIZED, "Debes iniciar sesión con un token válido", request, null);
+    }
+
+    /** @PreAuthorize rechazó el rol del usuario. */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorDTO> rolSinPermiso(AccessDeniedException ex, HttpServletRequest request) {
+        return responder(HttpStatus.FORBIDDEN, "No tienes permisos para realizar esta acción", request, null);
     }
 
     @ExceptionHandler(AccesoDenegadoException.class)

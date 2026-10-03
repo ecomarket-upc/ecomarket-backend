@@ -133,3 +133,51 @@ Header en todas las peticiones con cuerpo: `Content-Type: application/json`.
 | 10 | `DELETE /api/categorias/{id}` | — | **204** |
 
 **Resultado obtenido (2026-10-03):** las pruebas 1 a 8 y la 10 respondieron con el código esperado.
+
+---
+
+## Fase 4 – Seguridad: BCrypt, registro, login, JWT y roles (TS01, US01, US02, US03, US29, US38)
+
+| Archivo | Carpeta | Para qué sirve |
+|---|---|---|
+| `pom.xml` | raíz | Se agregan `spring-boot-starter-security` y `jjwt` (api, impl y jackson). |
+| `application.properties` | `resources` | `jwt.secreto`, `jwt.expiracion-minutos`, correo y contraseña del administrador inicial, origen CORS. |
+| `RegistroDTO`, `LoginDTO`, `AuthRespuestaDTO`, `UsuarioDTO`, `PerfilDTO` | `dto` | JSON de registro, login, respuesta con token y perfil. El rol del registro solo puede ser CONSUMIDOR o COMERCIANTE. |
+| `JwtUtil.java` | `security` | Genera el token (correo, id y rol) y lo valida. |
+| `JwtFiltro.java` | `security` | Lee `Authorization: Bearer <token>` en cada petición y autentica al usuario. |
+| `UsuarioDetallesService.java` | `security` | Carga el usuario por correo para Spring Security (rol `ROLE_<nombre>`; cuenta desactivada = no entra). |
+| `UsuarioActual.java` | `security` | Devuelve el usuario dueño del token (para saber quién crea un comercio, sus favoritos, etc.). |
+| `ErroresSeguridad.java` | `security` | Respuestas JSON 401 (sin token) y 403 (rol sin permiso). |
+| `SecurityConfig.java` | `config` | `BCryptPasswordEncoder`, rutas públicas, API sin sesión (stateless), CORS y filtro JWT. |
+| `AuthService.java`, `UsuarioService.java` | `services` | Registro (contraseña con BCrypt), login, perfil y desactivación de cuentas. |
+| `AuthController.java` | `controller` | `POST /api/auth/register`, `POST /api/auth/login`. |
+| `UsuarioController.java` | `controller` | `GET /api/usuarios` (admin), `GET` y `PUT /api/usuarios/perfil`, `PATCH /api/usuarios/{id}/desactivar` (admin). |
+| `DatosIniciales.java` | `config` | Ahora también crea el administrador `admin@ecomarket.pe` / `Admin12345`. |
+
+Control por rol: `@PreAuthorize("hasRole('ADMINISTRADOR')")` en los métodos de crear, editar y eliminar
+categorías y Eco-Etiquetas, y en la gestión de usuarios.
+
+> **Cierre de sesión (US03):** como la API no guarda sesiones, cerrar sesión consiste en que el frontend
+> borre el token. Después de expirar (120 minutos) el token deja de servir.
+
+### Pruebas en Postman
+
+1. **Registro de consumidor** – `POST /api/auth/register`
+   ```json
+   {"nombres": "Lucía", "apellidos": "Quispe", "correo": "lucia@correo.com", "contrasena": "Clave2026", "rol": "CONSUMIDOR"}
+   ```
+   **201** con `token`, `tipo: "Bearer"` y `usuario` (sin contraseña).
+2. Mismo registro otra vez → **409** "El correo lucia@correo.com ya está en uso".
+3. Registro inválido `{"nombres": "", "apellidos": "X", "correo": "malo", "contrasena": "corta", "rol": "ADMINISTRADOR"}` → **400** con `errores` por campo.
+4. **Registro de comerciante** – igual que el 1 con `"rol": "COMERCIANTE"` y otro correo → **201**.
+5. **Login** – `POST /api/auth/login` `{"correo": "admin@ecomarket.pe", "contrasena": "Admin12345"}` → **200** con token.
+   En Postman: pestaña *Authorization* → *Bearer Token* → pegar el token.
+6. Login con contraseña incorrecta → **401** "Correo o contraseña incorrectos".
+7. `GET /api/usuarios/perfil` sin token → **401**.
+8. `GET /api/usuarios` con token de consumidor → **403** (TS01, escenario 3).
+9. `GET /api/usuarios` con token de administrador → **200** con la lista.
+10. `POST /api/categorias` con token de consumidor → **403**; con token de administrador → **201**.
+11. `PUT /api/usuarios/perfil` con `{"nombres": "Lucía", "apellidos": "Quispe Rojas", "contrasena": "corta"}` → **400** (US38, escenario 2).
+12. En pgAdmin, la tabla `usuarios` muestra la contraseña como `$2a$10$...` (hash BCrypt), nunca en texto plano.
+
+**Resultado obtenido (2026-10-03):** todas las pruebas respondieron con el código esperado.

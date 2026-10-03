@@ -3,6 +3,7 @@ package pe.edu.upc.ecomarket.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -37,17 +38,20 @@ public class CategoriaController {
         return categoriaService.obtener(id);
     }
 
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public CategoriaDTO crear(@Valid @RequestBody CategoriaDTO dto) {
         return categoriaService.crear(dto);
     }
 
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     @PutMapping("/{id}")
     public CategoriaDTO actualizar(@PathVariable Long id, @Valid @RequestBody CategoriaDTO dto) {
         return categoriaService.actualizar(id, dto);
     }
 
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminar(@PathVariable Long id) {
