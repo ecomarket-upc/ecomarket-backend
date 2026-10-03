@@ -18,6 +18,8 @@ import pe.edu.upc.ecomarket.dto.ClasificacionDTO;
 import pe.edu.upc.ecomarket.dto.ProductoComparadoDTO;
 import pe.edu.upc.ecomarket.dto.ProductoDTO;
 import pe.edu.upc.ecomarket.dto.ProductoRespuestaDTO;
+import pe.edu.upc.ecomarket.models.Producto;
+import pe.edu.upc.ecomarket.services.ActividadService;
 import pe.edu.upc.ecomarket.services.ProductoService;
 
 import java.util.List;
@@ -31,6 +33,7 @@ import java.util.List;
 public class ProductoController {
 
     private final ProductoService productoService;
+    private final ActividadService actividadService;
 
     @PreAuthorize("hasRole('COMERCIANTE')")
     @PostMapping
@@ -53,9 +56,12 @@ public class ProductoController {
         return productoService.comparar(ids, lat, lng);
     }
 
+    /** US11; TS13: registra la visita al producto (y la búsqueda de origen con ?busqueda=termino). */
     @GetMapping("/{id}")
-    public ProductoRespuestaDTO obtener(@PathVariable Long id) {
-        return productoService.obtener(id);
+    public ProductoRespuestaDTO obtener(@PathVariable Long id, @RequestParam(required = false) String busqueda) {
+        Producto producto = productoService.obtenerVisible(id);
+        actividadService.registrarVisita(producto.getComercio(), producto, busqueda);
+        return productoService.aDTO(producto);
     }
 
     @PutMapping("/{id}")

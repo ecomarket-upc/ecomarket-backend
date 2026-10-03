@@ -19,6 +19,8 @@ import pe.edu.upc.ecomarket.dto.ComercioDTO;
 import pe.edu.upc.ecomarket.dto.ComercioRespuestaDTO;
 import pe.edu.upc.ecomarket.dto.ProductoRespuestaDTO;
 import pe.edu.upc.ecomarket.dto.ValidacionComercioDTO;
+import pe.edu.upc.ecomarket.models.Comercio;
+import pe.edu.upc.ecomarket.services.ActividadService;
 import pe.edu.upc.ecomarket.services.ComercioService;
 import pe.edu.upc.ecomarket.services.ProductoService;
 
@@ -34,6 +36,7 @@ public class ComercioController {
 
     private final ComercioService comercioService;
     private final ProductoService productoService;
+    private final ActividadService actividadService;
 
     /** US19: queda en estado PENDING hasta que el administrador lo apruebe. */
     @PreAuthorize("hasRole('COMERCIANTE')")
@@ -61,10 +64,15 @@ public class ComercioController {
         return comercioService.pendientes();
     }
 
-    /** US08: detalle del comercio. Uno no aprobado responde 404 salvo para su dueño o el administrador. */
+    /**
+     * US08: detalle del comercio. Uno no aprobado responde 404 salvo para su dueño o el administrador.
+     * TS13: registra la visita; si viene de una búsqueda, enviar ?busqueda=termino.
+     */
     @GetMapping("/{id}")
-    public ComercioRespuestaDTO obtener(@PathVariable Long id) {
-        return comercioService.obtener(id);
+    public ComercioRespuestaDTO obtener(@PathVariable Long id, @RequestParam(required = false) String busqueda) {
+        Comercio comercio = comercioService.obtenerVisible(id);
+        actividadService.registrarVisita(comercio, null, busqueda);
+        return comercioService.aDTO(comercio);
     }
 
     /** US10: catálogo del comercio (lista vacía si aún no publica productos). */
