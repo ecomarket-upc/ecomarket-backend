@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import pe.edu.upc.ecomarket.dto.ClasificacionDTO;
 import pe.edu.upc.ecomarket.dto.ProductoComparadoDTO;
 import pe.edu.upc.ecomarket.dto.ProductoDTO;
 import pe.edu.upc.ecomarket.dto.ProductoRespuestaDTO;
@@ -60,6 +61,12 @@ public class ProductoController {
     @PutMapping("/{id}")
     public ProductoRespuestaDTO actualizar(@PathVariable Long id, @Valid @RequestBody ProductoDTO dto) {
         return productoService.actualizar(id, dto);
+    }
+
+    /** TS06: vuelve a clasificar con Gemini (o palabras clave) e indica el motor usado. */
+    @PostMapping("/{id}/clasificar")
+    public ClasificacionDTO clasificar(@PathVariable Long id) {
+        return productoService.clasificar(id);
     }
 
     @DeleteMapping("/{id}")
