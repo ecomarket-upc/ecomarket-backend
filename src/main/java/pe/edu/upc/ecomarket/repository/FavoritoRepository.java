@@ -6,4 +6,6 @@ import pe.edu.upc.ecomarket.models.Favorito;
 
 @Repository
 public interface FavoritoRepository extends JpaRepository<Favorito, Long> {
+
+    void deleteByComercioId(Long comercioId);
 }

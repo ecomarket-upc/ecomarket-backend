@@ -6,4 +6,6 @@ import pe.edu.upc.ecomarket.models.Suscripcion;
 
 @Repository
 public interface SuscripcionRepository extends JpaRepository<Suscripcion, Long> {
+
+    void deleteByComercioId(Long comercioId);
 }
