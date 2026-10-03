@@ -305,3 +305,71 @@ Producto → Spring Boot → Gemini → Eco-Etiquetas sugeridas → Producto
 
 **Resultado obtenido (2026-10-03):** pruebas 1 a 8 correctas. Sin clave el motor fue `keywords`; con una clave falsa
 Gemini respondió 400 y la API usó las palabras clave. La prueba con `"motor": "gemini"` necesita una API key real.
+
+---
+
+## Fase 8 – Favoritos, preferencias, recomendaciones, estadísticas, premium y promociones
+
+### Archivos
+
+| Archivo | Carpeta | Para qué sirve | Historias |
+|---|---|---|---|
+| `FavoritoDTO`, `FavoritoRespuestaDTO` | `dto` | Comercio favorito del consumidor. | US09, TS11 |
+| `PreferenciasDTO` | `dto` | Lista de ids de Eco-Etiquetas preferidas. | US04, TS11 |
+| `ConteoDTO` | `dto` | Nombre + cantidad (visitas por producto, términos, meses). | TS13 |
+| `EstadisticasDTO`, `EstadisticasAvanzadasDTO` | `dto` | Visitas, términos de búsqueda y, con premium, comparación con la categoría y evolución de 6 meses. | US22, US23, US27 |
+| `ResumenActividadDTO` | `dto` | Productos consultados por Eco-Etiqueta y comercios favoritos. | US31 |
+| `SuscripcionDTO`, `SuscripcionRespuestaDTO` | `dto` | Contratación simulada del plan premium (S/ 29.90 por mes). | US24, TS14 |
+| `PromocionDTO`, `PromocionRespuestaDTO` | `dto` | Promoción con fecha de inicio y fin. | US26, TS14 |
+| `RecomendacionProductosDTO`, `RecomendacionComerciosDTO` | `dto` | Lista recomendada y el `criterio` usado. | US17, US18, TS12 |
+| Repositorios de `Favorito`, `Preferencia`, `Busqueda`, `Visita`, `Suscripcion`, `Promocion` | `repository` | Consultas por usuario o comercio; en `VisitaRepository`, conteos con `@Query`. | TS13 |
+| `FavoritoService`, `PreferenciaService` | `services` | Favorito repetido → 409; solo comercios aprobados; preferencias reemplazan la lista anterior. | US04, US09, TS11 |
+| `ActividadService` | `services` | Registra cada visita al detalle de un comercio o producto (con la búsqueda de origen `?busqueda=`) y cada término buscado. No cuenta las visitas del dueño ni del admin. | TS13 |
+| `EstadisticaService` | `services` | Estadísticas por periodo (`semana`, `mes`, `anio`); solo el dueño (403 para otros). | US22, US23, US27, US31 |
+| `SuscripcionService` | `services` | Contrata o renueva el plan; promociones solo con premium activo (403) y fechas válidas (400). | US24, US26, TS14 |
+| `RecomendacionService` | `services` | Lógica sencilla, sin otra IA: 2 puntos por Eco-Etiqueta preferida + 1 si coincide con una búsqueda reciente. Sin datos → más consultados / más cercanos. | US17, US18, TS12 |
+| `ComercioService`, `ProductoService` | `services` | El detalle del comercio incluye `premium` y `promociones` vigentes; los productos de comercios premium salen `destacado: true` y primero en la búsqueda, luego los afines a las preferencias. | US04, US25, US26 |
+| `FavoritoController`, `PreferenciaController`, `RecomendacionController`, `SuscripcionController`, `EstadisticaController` | `controller` | Endpoints nuevos (tabla de abajo). | — |
+
+### Endpoints nuevos
+
+| Método y URL | Rol | Historias |
+|---|---|---|
+| `POST /api/favoritos` `{"comercioId": 1}` | CONSUMIDOR | US09, TS11 |
+| `GET /api/favoritos` | CONSUMIDOR | US09 |
+| `DELETE /api/favoritos/{id}` | CONSUMIDOR (dueño del favorito) | US09 |
+| `GET /api/preferencias` | CONSUMIDOR | US04 |
+| `PUT /api/preferencias` `{"ecoEtiquetaIds": [1, 5]}` | CONSUMIDOR | US04, TS11 |
+| `GET /api/recomendaciones/productos` | CONSUMIDOR | US17, TS12 |
+| `GET /api/recomendaciones/comercios?lat&lng&radio` | CONSUMIDOR | US18, TS12 |
+| `GET /api/comercios/{id}/estadisticas?periodo=mes` | dueño o admin | US22, US23, US27, TS13 |
+| `GET /api/consumidor/resumen` | CONSUMIDOR | US31 |
+| `POST /api/suscripciones` `{"comercioId": 1, "meses": 1}` | COMERCIANTE (dueño) | US24, TS14 |
+| `GET /api/suscripciones?comercioId=1` | COMERCIANTE (dueño) | US24 |
+| `POST /api/promociones` | COMERCIANTE premium | US26, TS14 |
+| `GET /api/comercios/{id}?busqueda=quinua` y `GET /api/productos/{id}?busqueda=granel` | público | registran la visita (TS13) |
+
+### Pruebas en Postman (resultados obtenidos el 2026-10-03: 35 de 35 correctas)
+
+| # | Petición | Token | Esperado |
+|---|---|---|---|
+| 1 | `POST /api/favoritos` `{"comercioId": 1}` | consumidor | **201** |
+| 2 | Repetir la 1 | consumidor | **409** "El comercio ya está en tus favoritos" |
+| 3 | `POST /api/favoritos` | comerciante | **403** |
+| 4 | `DELETE /api/favoritos/{id}` de otro consumidor | consumidor | **403** |
+| 5 | `PUT /api/preferencias` `{"ecoEtiquetaIds": [id de "Venta a granel", id de "Orgánico"]}` | consumidor | **200** con las 2 Eco-Etiquetas |
+| 6 | `GET /api/busqueda/productos?nombre=quinua`, luego `GET /api/comercios/1?busqueda=quinua` y `GET /api/productos/{id}?busqueda=granel` | consumidor | **200** (quedan registradas búsqueda y visitas) |
+| 7 | `GET /api/comercios/1/estadisticas?periodo=mes` | dueño | **200** con `visitasComercio`, `visitasProductos`, `terminosBusqueda` ("granel", "quinua") y `mensajePremium` |
+| 8 | La misma consulta | otro comerciante | **403** (TS13, escenario 3) |
+| 9 | `?periodo=siglo` | dueño | **400** |
+| 10 | `POST /api/promociones` sin plan | dueño | **403** (TS14, escenario 2) |
+| 11 | `POST /api/suscripciones` `{"comercioId": 1, "meses": 1}` | dueño | **201** `activa: true`, `fechaFin` dentro de un mes, `monto: 29.90` |
+| 12 | `POST /api/promociones` con `fechaFin` antes que `fechaInicio` | dueño | **400** (US26, escenario 2) |
+| 13 | `POST /api/promociones` `{"comercioId": 1, "titulo": "2x1 en granos", "fechaInicio": "<hoy>", "fechaFin": "<hoy + 7>"}` | dueño | **201** |
+| 14 | `GET /api/comercios/1` | sin token | **200** con `premium: true` y la promoción vigente |
+| 15 | `GET /api/busqueda/productos` | sin token | productos del comercio premium con `destacado: true` y primero (US25) |
+| 16 | `GET /api/comercios/1/estadisticas` | dueño premium | **200** con `avanzadas` (categoría principal, promedios y evolución mensual) |
+| 17 | `GET /api/recomendaciones/productos` | consumidor con preferencias | **200** `criterio: "preferencias"` |
+| 18 | `GET /api/recomendaciones/productos` | consumidor nuevo | **200** `criterio: "mas-consultados"` (US17, escenario 2) |
+| 19 | `GET /api/recomendaciones/comercios?lat=-12.1020&lng=-77.0420&radio=5` | consumidor con preferencias / nuevo | `criterio: "preferencias"` / `"mas-cercanos"` (US18) |
+| 20 | `GET /api/consumidor/resumen` | consumidor con actividad / nuevo | conteo por Eco-Etiqueta y favoritos / mensaje "Aún no tienes actividad…" (US31) |

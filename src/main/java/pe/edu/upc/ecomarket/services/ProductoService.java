@@ -14,6 +14,7 @@ import pe.edu.upc.ecomarket.models.Comercio;
 import pe.edu.upc.ecomarket.models.EcoEtiqueta;
 import pe.edu.upc.ecomarket.models.EstadoComercio;
 import pe.edu.upc.ecomarket.models.Producto;
+import pe.edu.upc.ecomarket.models.Usuario;
 import pe.edu.upc.ecomarket.repository.EcoEtiquetaRepository;
 import pe.edu.upc.ecomarket.repository.ProductoRepository;
 import pe.edu.upc.ecomarket.security.UsuarioActual;
@@ -22,6 +23,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Productos de los comercios: publicación, edición, eliminación, catálogo, búsqueda y comparación
@@ -40,6 +42,7 @@ public class ProductoService {
     private final UsuarioActual usuarioActual;
     private final ClasificadorService clasificadorService;
     private final EcoEtiquetaRepository ecoEtiquetaRepository;
+    private final PreferenciaService preferenciaService;
 
     /**
      * US20: el comerciante publica en uno de sus comercios. Si no eligió Eco-Etiquetas, el sistema
@@ -83,10 +86,6 @@ public class ProductoService {
     }
 
     /** US11: un producto eliminado o de un comercio no aprobado "no existe" para el público. */
-    public ProductoRespuestaDTO obtener(Long id) {
-        return aDTO(obtenerVisible(id));
-    }
-
     public Producto obtenerVisible(Long id) {
         Producto producto = productoRepository.findById(id)
                 .filter(Producto::isActivo)
@@ -132,6 +131,28 @@ public class ProductoService {
     /** US06, US07, US15, TS04: todos los filtros son opcionales. */
     public List<Producto> buscar(String nombre, String categoria, String ecoEtiqueta) {
         return productoRepository.buscar(texto(nombre), texto(categoria), texto(ecoEtiqueta));
+    }
+
+    /**
+     * Resultados ordenados: primero los destacados de comercios premium (US25) y luego los que coinciden
+     * con más preferencias del consumidor autenticado (US04). Sin preferencias, el orden no se personaliza.
+     */
+    public List<ProductoRespuestaDTO> buscarOrdenado(String nombre, String categoria, String ecoEtiqueta) {
+        Set<EcoEtiqueta> preferidas = usuarioActual.buscar()
+                .map(Usuario::getId)
+                .map(preferenciaService::ecoEtiquetasDe)
+                .orElse(Set.of());
+        return buscar(nombre, categoria, ecoEtiqueta).stream()
+                .map(this::aDTO)
+                .sorted(Comparator.comparing(ProductoRespuestaDTO::isDestacado).reversed()
+                        .thenComparing(Comparator.comparingLong((ProductoRespuestaDTO p) -> coincidencias(p, preferidas)).reversed()))
+                .toList();
+    }
+
+    /** Cuántas Eco-Etiquetas del producto están entre las preferidas. */
+    public static long coincidencias(ProductoRespuestaDTO producto, Set<EcoEtiqueta> preferidas) {
+        Set<Long> ids = preferidas.stream().map(EcoEtiqueta::getId).collect(Collectors.toSet());
+        return producto.getEcoEtiquetas().stream().filter(e -> ids.contains(e.getId())).count();
     }
 
     /**
@@ -207,6 +228,7 @@ public class ProductoService {
                 .sorted(Comparator.comparing(EcoEtiqueta::getNombre))
                 .map(ecoEtiquetaService::aDTO).toList());
         dto.setMotorClasificacion(producto.getMotorClasificacion());
+        dto.setDestacado(comercioService.esPremium(producto.getComercio().getId()));
         if (producto.getEcoEtiquetas().isEmpty()) {
             dto.setAvisoEcoEtiquetas("El producto aún no tiene Eco-Etiquetas");
         }

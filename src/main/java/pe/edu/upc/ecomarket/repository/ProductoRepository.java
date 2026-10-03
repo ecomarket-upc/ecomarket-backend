@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import pe.edu.upc.ecomarket.models.EstadoComercio;
 import pe.edu.upc.ecomarket.models.Producto;
 
 import java.util.List;
@@ -22,6 +23,9 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
     /** Productos de todos los comercios de un comerciante. */
     List<Producto> findByComercioPropietarioIdAndActivoTrueOrderByIdAsc(Long propietarioId);
+
+    /** Productos publicados de una categoría, para la comparación premium (US27). */
+    long countByCategoriaIdAndActivoTrueAndComercioEstado(Long categoriaId, EstadoComercio estado);
 
     /**
      * Búsqueda pública (US06, US07, US15, TS04): solo productos activos de comercios aprobados.
