@@ -23,10 +23,13 @@ import pe.edu.upc.ecomarket.services.ActividadService;
 import pe.edu.upc.ecomarket.services.ProductoService;
 
 import java.util.List;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 
 /**
  * Productos (TS04): el comerciante publica y administra; el detalle y la comparación son públicos.
  */
+@Tag(name = "Productos", description = "Productos, clasificación con IA y comparación (TS04, TS06).")
 @RestController
 @RequestMapping("/api/productos")
 @RequiredArgsConstructor
@@ -35,6 +38,7 @@ public class ProductoController {
     private final ProductoService productoService;
     private final ActividadService actividadService;
 
+    @Operation(summary = "Publicar producto y clasificarlo con IA (comerciante, US13, US20)")
     @PreAuthorize("hasRole('COMERCIANTE')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -42,6 +46,7 @@ public class ProductoController {
         return productoService.crear(dto);
     }
 
+    @Operation(summary = "Mis productos (comerciante)")
     @PreAuthorize("hasRole('COMERCIANTE')")
     @GetMapping("/mis-productos")
     public List<ProductoRespuestaDTO> misProductos() {
@@ -49,6 +54,7 @@ public class ProductoController {
     }
 
     /** US12: por ejemplo /api/productos/comparar?ids=1,2&lat=-12.10&lng=-77.04 */
+    @Operation(summary = "Comparar de 2 a 4 productos (US12)")
     @GetMapping("/comparar")
     public List<ProductoComparadoDTO> comparar(@RequestParam List<Long> ids,
                                                @RequestParam(required = false) Double lat,
@@ -57,6 +63,7 @@ public class ProductoController {
     }
 
     /** US11; TS13: registra la visita al producto (y la búsqueda de origen con ?busqueda=termino). */
+    @Operation(summary = "Detalle del producto y registro de la visita (US11, TS13)")
     @GetMapping("/{id}")
     public ProductoRespuestaDTO obtener(@PathVariable Long id, @RequestParam(required = false) String busqueda) {
         Producto producto = productoService.obtenerVisible(id);
@@ -64,17 +71,20 @@ public class ProductoController {
         return productoService.aDTO(producto);
     }
 
+    @Operation(summary = "Editar producto (dueño o admin, US16, US20)")
     @PutMapping("/{id}")
     public ProductoRespuestaDTO actualizar(@PathVariable Long id, @Valid @RequestBody ProductoDTO dto) {
         return productoService.actualizar(id, dto);
     }
 
     /** TS06: vuelve a clasificar con Gemini (o palabras clave) e indica el motor usado. */
+    @Operation(summary = "Volver a clasificar con Gemini o palabras clave (dueño, TS06)")
     @PostMapping("/{id}/clasificar")
     public ClasificacionDTO clasificar(@PathVariable Long id) {
         return productoService.clasificar(id);
     }
 
+    @Operation(summary = "Eliminar producto (dueño o admin, US29)")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminar(@PathVariable Long id) {

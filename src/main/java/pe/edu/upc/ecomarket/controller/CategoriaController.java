@@ -17,10 +17,13 @@ import pe.edu.upc.ecomarket.dto.CategoriaDTO;
 import pe.edu.upc.ecomarket.services.CategoriaService;
 
 import java.util.List;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 
 /**
  * Categorías de productos (TS05). Consultar es público; crear, editar y eliminar es del administrador.
  */
+@Tag(name = "Categorías", description = "Categorías de productos (TS05). Consultar es público; escribir es del administrador.")
 @RestController
 @RequestMapping("/api/categorias")
 @RequiredArgsConstructor
@@ -28,16 +31,19 @@ public class CategoriaController {
 
     private final CategoriaService categoriaService;
 
+    @Operation(summary = "Listar categorías")
     @GetMapping
     public List<CategoriaDTO> listar() {
         return categoriaService.listar();
     }
 
+    @Operation(summary = "Ver una categoría")
     @GetMapping("/{id}")
     public CategoriaDTO obtener(@PathVariable Long id) {
         return categoriaService.obtener(id);
     }
 
+    @Operation(summary = "Crear categoría (admin)")
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -45,12 +51,14 @@ public class CategoriaController {
         return categoriaService.crear(dto);
     }
 
+    @Operation(summary = "Editar categoría (admin)")
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     @PutMapping("/{id}")
     public CategoriaDTO actualizar(@PathVariable Long id, @Valid @RequestBody CategoriaDTO dto) {
         return categoriaService.actualizar(id, dto);
     }
 
+    @Operation(summary = "Eliminar categoría sin productos (admin)")
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
