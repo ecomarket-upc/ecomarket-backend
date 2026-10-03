@@ -373,3 +373,30 @@ Gemini respondió 400 y la API usó las palabras clave. La prueba con `"motor": 
 | 18 | `GET /api/recomendaciones/productos` | consumidor nuevo | **200** `criterio: "mas-consultados"` (US17, escenario 2) |
 | 19 | `GET /api/recomendaciones/comercios?lat=-12.1020&lng=-77.0420&radio=5` | consumidor con preferencias / nuevo | `criterio: "preferencias"` / `"mas-cercanos"` (US18) |
 | 20 | `GET /api/consumidor/resumen` | consumidor con actividad / nuevo | conteo por Eco-Etiqueta y favoritos / mensaje "Aún no tienes actividad…" (US31) |
+
+---
+
+## Fase 9 – Documentación OpenAPI / Swagger (TS07)
+
+| Archivo | Carpeta | Para qué sirve |
+|---|---|---|
+| `pom.xml` | raíz | Dependencia `springdoc-openapi-starter-webmvc-ui`. |
+| `application.properties` | `resources` | Orden de operaciones y `persist-authorization` (el token no se borra al recargar). |
+| `OpenApiConfig.java` | `config` | Título y descripción de la API y esquema de seguridad **Bearer JWT** (`bearerAuth`). |
+| `SecurityConfig.java` | `config` | Deja públicas `/swagger-ui.html`, `/swagger-ui/**` y `/v3/api-docs/**`. |
+| Todos los controllers | `controller` | `@Tag` (grupo) y `@Operation(summary = …)` en cada endpoint, con la historia relacionada. `AuthController` se marca sin seguridad (`@SecurityRequirements`). |
+| DTOs de entrada | `dto` | `@Schema(example = …)` para que Swagger muestre cuerpos JSON de ejemplo. |
+| `ManejadorExcepciones.java` | `exceptions` | `@ResponseStatus` en cada handler: Swagger documenta los códigos 400, 401, 403, 404, 409 y 500. |
+
+### Cómo probar
+
+1. Ejecutar la API y abrir **http://localhost:8080/swagger-ui.html** (en esta PC, puerto 18080).
+2. Se ven 12 grupos (Autenticación, Búsqueda, Categorías, Comercios, Eco-Etiquetas, Estadísticas, Favoritos,
+   Preferencias, Premium y promociones, Productos, Recomendaciones, Usuarios) con 47 operaciones, sus parámetros,
+   cuerpos JSON de ejemplo y códigos de respuesta.
+3. En *Autenticación → POST /api/auth/login* → *Try it out* → `{"correo": "admin@ecomarket.pe", "contrasena": "Admin12345"}` → *Execute* → copiar el `token`.
+4. Clic en **Authorize** (candado), pegar el token (sin escribir "Bearer") → *Authorize* → *Close*.
+5. *Usuarios → GET /api/usuarios* → *Try it out* → *Execute*: **200** con la lista. El comando curl que muestra Swagger
+   incluye `-H 'Authorization: Bearer …'` (TS07, escenario 2).
+
+**Resultado obtenido (2026-10-03):** Swagger UI respondió 200; con el token de administrador, `GET /api/usuarios` devolvió 200.
