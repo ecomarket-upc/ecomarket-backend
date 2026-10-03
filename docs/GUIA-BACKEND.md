@@ -41,3 +41,59 @@ src/main/java/pe/edu/upc/ecomarket
    - `Started EcomarketBackendApplication`.
 
 **Resultado obtenido (2026-10-03):** conexión correcta con PostgreSQL 18.
+
+---
+
+## Fase 2 – Modelo, relaciones y datos iniciales (TS08)
+
+### Entidades (`models/`)
+
+| Archivo | Tabla | Relaciones JPA | Historias |
+|---|---|---|---|
+| `Rol.java` | `roles` | — | US01, US02, TS01 |
+| `Usuario.java` | `usuarios` | `@ManyToOne` Rol | US01–US03, US29, US38 |
+| `EstadoComercio.java` | (enum) | — | PENDING / APPROVED / REJECTED (TS02) |
+| `Comercio.java` | `comercios` | `@ManyToOne` Usuario (propietario) | US19, US21, US30, TS02, TS10 |
+| `Categoria.java` | `categorias` | — | US07, TS05 |
+| `EcoEtiqueta.java` | `eco_etiquetas` | — | US14, US28, TS05, TS06 |
+| `Producto.java` | `productos` + `producto_eco_etiqueta` | `@ManyToOne` Comercio y Categoria, `@ManyToMany` EcoEtiqueta | US10, US11, US13, US20, TS04 |
+| `Favorito.java` | `favoritos` | `@ManyToOne` Usuario y Comercio | US09, TS11 |
+| `Preferencia.java` | `preferencias` | `@ManyToOne` Usuario y EcoEtiqueta | US04, TS11 |
+| `Busqueda.java` | `busquedas` | `@ManyToOne` Usuario (opcional) | US17, TS13 |
+| `Visita.java` | `visitas` | `@ManyToOne` Comercio, Producto y Usuario | US22, US23, US31, TS13 |
+| `Suscripcion.java` | `suscripciones` | `@ManyToOne` Comercio | US24, TS14 |
+| `Promocion.java` | `promociones` | `@ManyToOne` Comercio | US26, TS14 |
+
+```text
+Rol ← Usuario ← Comercio ← Producto → Categoria
+                    ↑          ↓
+                Favorito   EcoEtiqueta ← Preferencia → Usuario
+                Visita, Suscripcion, Promocion
+```
+
+### Repositorios (`repository/`)
+
+Una interfaz por entidad que extiende `JpaRepository<Entidad, Long>`. Spring Data genera el código
+de `save`, `findById`, `findAll`, `deleteById`, etc.
+
+### Datos iniciales (`config/DatosIniciales.java`)
+
+Clase `CommandLineRunner` que se ejecuta al arrancar y crea, solo si no existen:
+- 3 roles: CONSUMIDOR, COMERCIANTE, ADMINISTRADOR.
+- 6 categorías (Alimentos a granel, Frutas y verduras, Cuidado personal…).
+- 7 Eco-Etiquetas oficiales con sus palabras clave (Venta a granel, Sin envase plástico, Producto local…).
+- El usuario administrador se agrega en la Fase 4, cuando ya existe BCrypt para cifrar su contraseña.
+
+### Cómo comprobarlo en pgAdmin 4
+
+1. Ejecutar la aplicación.
+2. En pgAdmin: `ecomarket_db` → *Schemas* → *public* → *Tables* → clic derecho → *Refresh*. Deben aparecer 13 tablas.
+3. Clic derecho en `eco_etiquetas` → *View/Edit Data* → *All Rows*: 7 registros. En `categorias`: 6. En `roles`: 3.
+4. Prueba de integridad (TS08, escenario 2). En *Query Tool* ejecutar:
+   ```sql
+   insert into productos (nombre, precio, stock, comercio_id, categoria_id, activo, fecha_registro)
+   values ('Prueba', 1, 1, 999, 1, true, now());
+   ```
+   Resultado esperado: `ERROR: ... viola la llave foránea ... La llave (comercio_id)=(999) no está presente en la tabla «comercios».`
+
+**Resultado obtenido (2026-10-03):** 13 tablas, 16 llaves foráneas, 3 roles, 6 categorías y 7 Eco-Etiquetas; el insert de prueba fue rechazado por la llave foránea.
