@@ -17,10 +17,13 @@ import pe.edu.upc.ecomarket.dto.FavoritoRespuestaDTO;
 import pe.edu.upc.ecomarket.services.FavoritoService;
 
 import java.util.List;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 
 /**
  * Comercios favoritos del consumidor autenticado (US09, TS11).
  */
+@Tag(name = "Favoritos", description = "Comercios favoritos del consumidor (US09, TS11).")
 @RestController
 @RequestMapping("/api/favoritos")
 @RequiredArgsConstructor
@@ -29,17 +32,20 @@ public class FavoritoController {
 
     private final FavoritoService favoritoService;
 
+    @Operation(summary = "Agregar comercio favorito")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public FavoritoRespuestaDTO agregar(@Valid @RequestBody FavoritoDTO dto) {
         return favoritoService.agregar(dto);
     }
 
+    @Operation(summary = "Mis favoritos")
     @GetMapping
     public List<FavoritoRespuestaDTO> listar() {
         return favoritoService.listar();
     }
 
+    @Operation(summary = "Quitar favorito")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminar(@PathVariable Long id) {

@@ -25,10 +25,13 @@ import pe.edu.upc.ecomarket.services.ComercioService;
 import pe.edu.upc.ecomarket.services.ProductoService;
 
 import java.util.List;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 
 /**
  * Comercios (TS02): registro por el comerciante, consulta pública y validación por el administrador.
  */
+@Tag(name = "Comercios", description = "Registro, consulta y validación de comercios (TS02).")
 @RestController
 @RequestMapping("/api/comercios")
 @RequiredArgsConstructor
@@ -39,6 +42,7 @@ public class ComercioController {
     private final ActividadService actividadService;
 
     /** US19: queda en estado PENDING hasta que el administrador lo apruebe. */
+    @Operation(summary = "Registrar comercio (comerciante, US19)")
     @PreAuthorize("hasRole('COMERCIANTE')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -47,17 +51,20 @@ public class ComercioController {
     }
 
     /** Solo comercios aprobados; filtro opcional por distrito. */
+    @Operation(summary = "Listar comercios aprobados")
     @GetMapping
     public List<ComercioRespuestaDTO> listar(@RequestParam(required = false) String distrito) {
         return comercioService.listarAprobados(distrito);
     }
 
+    @Operation(summary = "Mis comercios (comerciante)")
     @PreAuthorize("hasRole('COMERCIANTE')")
     @GetMapping("/mis-comercios")
     public List<ComercioRespuestaDTO> misComercios() {
         return comercioService.misComercios();
     }
 
+    @Operation(summary = "Comercios pendientes de validación (admin)")
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     @GetMapping("/pendientes")
     public List<ComercioRespuestaDTO> pendientes() {
@@ -68,6 +75,7 @@ public class ComercioController {
      * US08: detalle del comercio. Uno no aprobado responde 404 salvo para su dueño o el administrador.
      * TS13: registra la visita; si viene de una búsqueda, enviar ?busqueda=termino.
      */
+    @Operation(summary = "Detalle del comercio y registro de la visita (US08, TS13)")
     @GetMapping("/{id}")
     public ComercioRespuestaDTO obtener(@PathVariable Long id, @RequestParam(required = false) String busqueda) {
         Comercio comercio = comercioService.obtenerVisible(id);
@@ -76,17 +84,20 @@ public class ComercioController {
     }
 
     /** US10: catálogo del comercio (lista vacía si aún no publica productos). */
+    @Operation(summary = "Catálogo de productos del comercio (US10)")
     @GetMapping("/{id}/productos")
     public List<ProductoRespuestaDTO> catalogo(@PathVariable Long id) {
         return productoService.catalogo(id);
     }
 
     /** US21: el dueño (o el administrador) edita los datos y horarios. Otro comerciante recibe 403. */
+    @Operation(summary = "Editar comercio (dueño o admin, US21)")
     @PutMapping("/{id}")
     public ComercioRespuestaDTO actualizar(@PathVariable Long id, @Valid @RequestBody ComercioDTO dto) {
         return comercioService.actualizar(id, dto);
     }
 
+    @Operation(summary = "Eliminar comercio (dueño o admin)")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminar(@PathVariable Long id) {
@@ -94,6 +105,7 @@ public class ComercioController {
     }
 
     /** US30: el administrador aprueba (APPROVED) o rechaza (REJECTED, con motivo). */
+    @Operation(summary = "Aprobar o rechazar comercio (admin, US30)")
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     @PatchMapping("/{id}/validacion")
     public ComercioRespuestaDTO validar(@PathVariable Long id, @Valid @RequestBody ValidacionComercioDTO dto) {
