@@ -1,20 +1,24 @@
 package pe.edu.upc.ecomarket.config;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import pe.edu.upc.ecomarket.models.Categoria;
 import pe.edu.upc.ecomarket.models.EcoEtiqueta;
 import pe.edu.upc.ecomarket.models.Rol;
+import pe.edu.upc.ecomarket.models.Usuario;
 import pe.edu.upc.ecomarket.repository.CategoriaRepository;
 import pe.edu.upc.ecomarket.repository.EcoEtiquetaRepository;
 import pe.edu.upc.ecomarket.repository.RolRepository;
+import pe.edu.upc.ecomarket.repository.UsuarioRepository;
 
 import java.util.List;
 
 /**
  * Carga los datos iniciales la primera vez que se ejecuta la aplicación (TS08):
- * roles, categorías y Eco-Etiquetas oficiales. Si ya existen, no hace nada.
+ * roles, usuario administrador, categorías y Eco-Etiquetas oficiales. Si ya existen, no hace nada.
  */
 @Component
 @RequiredArgsConstructor
@@ -23,10 +27,19 @@ public class DatosIniciales implements CommandLineRunner {
     private final RolRepository rolRepository;
     private final CategoriaRepository categoriaRepository;
     private final EcoEtiquetaRepository ecoEtiquetaRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    @Value("${admin.correo}")
+    private String correoAdmin;
+
+    @Value("${admin.contrasena}")
+    private String contrasenaAdmin;
 
     @Override
     public void run(String... args) {
         crearRoles();
+        crearAdministrador();
         crearCategorias();
         crearEcoEtiquetas();
     }
@@ -37,6 +50,20 @@ public class DatosIniciales implements CommandLineRunner {
                 rolRepository.save(new Rol(null, nombre));
             }
         }
+    }
+
+    /** El administrador no se puede registrar por la API, así que se crea aquí (TS08). */
+    private void crearAdministrador() {
+        if (usuarioRepository.existsByRolNombre(Rol.ADMINISTRADOR)) {
+            return;
+        }
+        Usuario admin = new Usuario();
+        admin.setNombres("Administrador");
+        admin.setApellidos("EcoMarket");
+        admin.setCorreo(correoAdmin.trim().toLowerCase());
+        admin.setContrasena(passwordEncoder.encode(contrasenaAdmin));
+        admin.setRol(rolRepository.findByNombre(Rol.ADMINISTRADOR).orElseThrow());
+        usuarioRepository.save(admin);
     }
 
     private void crearCategorias() {

@@ -3,6 +3,7 @@ package pe.edu.upc.ecomarket.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,12 +41,14 @@ public class EcoEtiquetaController {
         return ecoEtiquetaService.obtener(id);
     }
 
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public EcoEtiquetaDTO crear(@Valid @RequestBody EcoEtiquetaDTO dto) {
         return ecoEtiquetaService.crear(dto);
     }
 
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     @PutMapping("/{id}")
     public EcoEtiquetaDTO actualizar(@PathVariable Long id, @Valid @RequestBody EcoEtiquetaDTO dto) {
         return ecoEtiquetaService.actualizar(id, dto);
@@ -54,6 +57,7 @@ public class EcoEtiquetaController {
     /**
      * 200 con mensaje si se desactivó porque está en productos; 204 si se borró.
      */
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     @DeleteMapping("/{id}")
     public ResponseEntity<MensajeDTO> eliminar(@PathVariable Long id) {
         if (ecoEtiquetaService.eliminar(id)) {
