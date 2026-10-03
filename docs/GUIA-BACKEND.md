@@ -97,3 +97,39 @@ Clase `CommandLineRunner` que se ejecuta al arrancar y crea, solo si no existen:
    Resultado esperado: `ERROR: ... viola la llave foránea ... La llave (comercio_id)=(999) no está presente en la tabla «comercios».`
 
 **Resultado obtenido (2026-10-03):** 13 tablas, 16 llaves foráneas, 3 roles, 6 categorías y 7 Eco-Etiquetas; el insert de prueba fue rechazado por la llave foránea.
+
+---
+
+## Fase 3 – CRUD básico: Categorías y Eco-Etiquetas (TS05, US28)
+
+| Archivo | Carpeta | Para qué sirve |
+|---|---|---|
+| `CategoriaDTO.java`, `EcoEtiquetaDTO.java` | `dto` | JSON de entrada y salida, con validaciones (`@NotBlank`, `@Size`). |
+| `MensajeDTO.java`, `ErrorDTO.java` | `dto` | Respuesta con un mensaje y formato único de errores. |
+| `CategoriaService.java` | `services` | Listar, obtener, crear, actualizar y eliminar. No permite nombres repetidos (409) ni borrar categorías con productos (409). |
+| `EcoEtiquetaService.java` | `services` | Igual que categorías. Al eliminar una Eco-Etiqueta asignada a productos la **desactiva** (eliminación lógica, TS05). |
+| `CategoriaController.java` | `controller` | `/api/categorias` |
+| `EcoEtiquetaController.java` | `controller` | `/api/eco-etiquetas` |
+| `RecursoNoEncontradoException`, `ReglaNegocioException`, `AccesoDenegadoException`, `ConflictoException` | `exceptions` | Errores propios: 404, 400, 403 y 409. |
+| `ManejadorExcepciones.java` | `exceptions` | `@RestControllerAdvice` que convierte cada error en JSON con su código HTTP. |
+
+> En esta fase todavía no hay seguridad. Desde la Fase 4, crear, editar y eliminar requieren el token del administrador.
+
+### Pruebas en Postman
+
+Header en todas las peticiones con cuerpo: `Content-Type: application/json`.
+
+| # | Método y URL | Body | Respuesta esperada |
+|---|---|---|---|
+| 1 | `GET /api/categorias` | — | **200** con las 6 categorías iniciales |
+| 2 | `POST /api/categorias` | `{"nombre": "Mascotas", "descripcion": "Productos para mascotas"}` | **201** con el `id` creado |
+| 3 | `POST /api/categorias` (mismo nombre) | igual que el 2 | **409** "Ya existe una categoría llamada Mascotas" |
+| 4 | `POST /api/categorias` | `{"nombre": ""}` | **400** con `errores.nombre` = "El nombre es obligatorio" |
+| 5 | `GET /api/categorias/999` | — | **404** "Categoría con id 999 no existe" |
+| 6 | `GET /api/eco-etiquetas` | — | **200** con las 7 Eco-Etiquetas activas |
+| 7 | `POST /api/eco-etiquetas` | `{"nombre": "Comercio justo", "descripcion": "Pago justo", "criterio": "Compra directa al productor", "palabrasClave": "comercio justo, compra directa"}` | **201** |
+| 8 | `DELETE /api/eco-etiquetas/{id}` (sin productos) | — | **204** (se borra) |
+| 9 | `DELETE /api/eco-etiquetas/{id}` (con productos) | — | **200** `{"mensaje": "La Eco-Etiqueta está asignada a productos: se desactivó…"}` (se prueba en la Fase 7) |
+| 10 | `DELETE /api/categorias/{id}` | — | **204** |
+
+**Resultado obtenido (2026-10-03):** las pruebas 1 a 8 y la 10 respondieron con el código esperado.

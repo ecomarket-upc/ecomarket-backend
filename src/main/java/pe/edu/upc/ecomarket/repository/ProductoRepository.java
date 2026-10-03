@@ -6,4 +6,8 @@ import pe.edu.upc.ecomarket.models.Producto;
 
 @Repository
 public interface ProductoRepository extends JpaRepository<Producto, Long> {
+
+    boolean existsByCategoriaId(Long categoriaId);
+
+    boolean existsByEcoEtiquetasId(Long ecoEtiquetaId);
 }
