@@ -40,6 +40,7 @@ public class SecurityConfig {
             "/api/categorias/**",
             "/api/eco-etiquetas/**",
             "/api/comercios/**",
+            "/api/productos/**",
             "/api/busqueda/**"
     };
 
@@ -47,7 +48,8 @@ public class SecurityConfig {
     private static final String[] RUTAS_GET_PRIVADAS = {
             "/api/comercios/mis-comercios",
             "/api/comercios/pendientes",
-            "/api/comercios/*/estadisticas"
+            "/api/comercios/*/estadisticas",
+            "/api/productos/mis-productos"
     };
 
     private final JwtFiltro jwtFiltro;
