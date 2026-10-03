@@ -78,6 +78,12 @@ public class ComercioService {
         return aDTO(obtenerVisible(id));
     }
 
+    /** US06, escenario 3. */
+    public List<ComercioRespuestaDTO> buscarPorTexto(String texto) {
+        return comercioRepository.findByEstadoAndNombreContainingIgnoreCaseOrderByNombreAsc(EstadoComercio.APPROVED,
+                texto.trim()).stream().map(this::aDTO).toList();
+    }
+
     public List<ComercioRespuestaDTO> misComercios() {
         return comercioRepository.findByPropietarioIdOrderByIdAsc(usuarioActual.obtener().getId()).stream()
                 .map(this::aDTO).toList();

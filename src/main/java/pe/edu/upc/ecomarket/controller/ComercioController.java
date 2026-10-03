@@ -17,8 +17,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import pe.edu.upc.ecomarket.dto.ComercioDTO;
 import pe.edu.upc.ecomarket.dto.ComercioRespuestaDTO;
+import pe.edu.upc.ecomarket.dto.ProductoRespuestaDTO;
 import pe.edu.upc.ecomarket.dto.ValidacionComercioDTO;
 import pe.edu.upc.ecomarket.services.ComercioService;
+import pe.edu.upc.ecomarket.services.ProductoService;
 
 import java.util.List;
 
@@ -31,6 +33,7 @@ import java.util.List;
 public class ComercioController {
 
     private final ComercioService comercioService;
+    private final ProductoService productoService;
 
     /** US19: queda en estado PENDING hasta que el administrador lo apruebe. */
     @PreAuthorize("hasRole('COMERCIANTE')")
@@ -62,6 +65,12 @@ public class ComercioController {
     @GetMapping("/{id}")
     public ComercioRespuestaDTO obtener(@PathVariable Long id) {
         return comercioService.obtener(id);
+    }
+
+    /** US10: catálogo del comercio (lista vacía si aún no publica productos). */
+    @GetMapping("/{id}/productos")
+    public List<ProductoRespuestaDTO> catalogo(@PathVariable Long id) {
+        return productoService.catalogo(id);
     }
 
     /** US21: el dueño (o el administrador) edita los datos y horarios. Otro comerciante recibe 403. */
