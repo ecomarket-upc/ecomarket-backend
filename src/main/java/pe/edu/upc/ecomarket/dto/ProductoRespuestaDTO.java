@@ -28,6 +28,8 @@ public class ProductoRespuestaDTO {
     private List<EcoEtiquetaDTO> ecoEtiquetas;
     /** "gemini", "keywords" o "manual"; nulo si aún no se clasificó. */
     private String motorClasificacion;
+    /** Producto de un comercio con plan premium activo: aparece primero (US25). */
+    private boolean destacado;
     /** Aviso cuando el producto no tiene Eco-Etiquetas (US14, escenario 2). */
     private String avisoEcoEtiquetas;
 }

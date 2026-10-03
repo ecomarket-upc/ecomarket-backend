@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Detalle de un comercio que devuelve la API (US08).
@@ -28,4 +29,8 @@ public class ComercioRespuestaDTO {
     private Long propietarioId;
     private String propietarioNombre;
     private LocalDateTime fechaRegistro;
+    /** Tiene un plan premium activo (US25). */
+    private boolean premium;
+    /** Promociones vigentes; las vencidas no se muestran (US26). */
+    private List<PromocionRespuestaDTO> promociones;
 }
