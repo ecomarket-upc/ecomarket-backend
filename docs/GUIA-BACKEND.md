@@ -263,3 +263,45 @@ Token del comerciante dueño del comercio aprobado en la Fase 5.
 | 17 | `DELETE /api/productos/{id}` | dueño o admin | — | **204**; luego `GET` del producto → **404** |
 
 **Resultado obtenido (2026-10-03):** las pruebas 1 a 16 respondieron con el código esperado (la 17 se cubre en la Fase 10).
+
+---
+
+## Fase 7 – Eco-Etiquetas con IA: Gemini y respaldo por palabras clave (TS06, US13, US16, US28)
+
+| Archivo | Carpeta | Para qué sirve |
+|---|---|---|
+| `application.properties` | `resources` | `gemini.api-key=${GEMINI_API_KEY:}` (la clave **solo** va en la variable de entorno), modelo `gemini-2.5-flash` y tiempo de espera (10 s). |
+| `ClasificadorService.java` | `services` | Envía nombre, descripción y Eco-Etiquetas activas a Gemini y lee los ids que sugiere. Si no hay clave, Gemini falla o supera el tiempo de espera, usa las **palabras clave** de cada Eco-Etiqueta (ignora tildes, mayúsculas, género y plural). |
+| `ClasificacionDTO.java` | `dto` | Respuesta de `/clasificar`: `producto`, `motor` (`gemini` o `keywords`) y `mensaje`. |
+| `ProductoService.java` | `services` | Al publicar sin elegir Eco-Etiquetas, clasifica automáticamente (TS06, escenario 1). Nuevo método `clasificar`. |
+| `ProductoController.java` | `controller` | Nuevo `POST /api/productos/{id}/clasificar` (solo el dueño). |
+
+```text
+Producto → Spring Boot → Gemini → Eco-Etiquetas sugeridas → Producto
+                           ↓ (sin clave, error o tiempo de espera)
+                     Palabras clave del administrador
+```
+
+### Configurar la API key de Gemini (sin subirla a GitHub)
+
+1. Crear la clave en https://aistudio.google.com/app/apikey
+2. En Windows (PowerShell), una sola vez: `setx GEMINI_API_KEY "tu-clave"` y reabrir VS Code.
+   O en VS Code, en `.vscode/launch.json`: `"env": { "GEMINI_API_KEY": "tu-clave" }` (la carpeta `.vscode` no se sube).
+3. Al reiniciar la API, `/clasificar` responderá `"motor": "gemini"`.
+
+### Pruebas en Postman
+
+| # | Método y URL | Token | Respuesta esperada |
+|---|---|---|---|
+| 1 | `POST /api/productos` con `"descripcion": "Quinua orgánica de productores de Puno, vendida a granel por kilo"` (sin `ecoEtiquetaIds`) | comerciante | **201** con Eco-Etiquetas "Orgánico", "Producto local", "Venta a granel" y `motorClasificacion` |
+| 2 | `POST /api/productos` con `"descripcion": "Paquete de fideos tallarín"` | comerciante | **201** sin Eco-Etiquetas y `avisoEcoEtiquetas` (US13, escenario 2) |
+| 3 | `POST /api/productos/{id}/clasificar` | dueño | **200** `{"producto": {...}, "motor": "keywords", "mensaje": "Se asignaron 2 Eco-Etiquetas"}` |
+| 4 | `POST /api/productos/{id}/clasificar` | otro comerciante | **403** |
+| 5 | `POST /api/productos/{id}/clasificar` | sin token | **401** |
+| 6 | Con `GEMINI_API_KEY` inválida o sin internet, repetir la 3 | dueño | **200** con `"motor": "keywords"` y en consola `Gemini no respondió, se usan las palabras clave` (TS06, escenario 3) |
+| 7 | `DELETE /api/eco-etiquetas/{id}` de una Eco-Etiqueta asignada | admin | **200** "se desactivó y se conserva en esos productos" (TS05, escenario 3) |
+| 8 | `GET /api/eco-etiquetas` | sin token | ya no aparece la desactivada; `?incluirInactivas=true` sí la muestra |
+| 9 | `PUT /api/productos/{id}` con `"ecoEtiquetaIds": [1, 3]` | dueño | **200** con `motorClasificacion: "manual"` (US16) |
+
+**Resultado obtenido (2026-10-03):** pruebas 1 a 8 correctas. Sin clave el motor fue `keywords`; con una clave falsa
+Gemini respondió 400 y la API usó las palabras clave. La prueba con `"motor": "gemini"` necesita una API key real.
