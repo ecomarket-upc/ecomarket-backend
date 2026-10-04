@@ -400,3 +400,46 @@ Gemini respondió 400 y la API usó las palabras clave. La prueba con `"motor": 
    incluye `-H 'Authorization: Bearer …'` (TS07, escenario 2).
 
 **Resultado obtenido (2026-10-03):** Swagger UI respondió 200; con el token de administrador, `GET /api/usuarios` devolvió 200.
+
+---
+
+## Fase 10 – Pruebas finales y evidencias
+
+### Pruebas automatizadas (`src/test`)
+
+| Archivo | Qué prueba |
+|---|---|
+| `resources/application.properties` | Las pruebas usan H2 en memoria (modo PostgreSQL), sin Gemini ni geocodificación real. |
+| `PruebaBase.java` | Levanta la API completa con MockMvc y ofrece ayudas (registrar, login, crear comercio y producto). |
+| `AuthPruebasTest.java` | Datos iniciales (TS08), registro, 409, 400, login 401, roles 401/403, perfil, cuenta desactivada. |
+| `ComercioPruebasTest.java` | Comercio PENDING, 404 al público, 403 a otros, dirección no ubicable, validación, rechazado → PENDING, cercanía. |
+| `ProductoPruebasTest.java` | Clasificación con palabras clave, dueño (403), validaciones, búsqueda, catálogo, comparación, corrección manual, eliminación lógica de producto y de Eco-Etiqueta. |
+| `AdicionalesPruebasTest.java` | Favoritos (409/403), preferencias, visitas y búsquedas en estadísticas, premium, promociones, destacados, recomendaciones y resumen. |
+
+Ejecutar: `mvnw.cmd test` → **25 pruebas, 0 fallas** (2026-10-03).
+
+### Colección de Postman (`postman/EcoMarket.postman_collection.json`)
+
+78 peticiones en 10 carpetas. Cada nombre indica el código esperado, por ejemplo "Editar comercio ajeno (403)".
+Los correos se generan con la hora, así que se puede ejecutar varias veces.
+
+1. Postman → *Import* → elegir el archivo.
+2. En la colección → *Variables* → `baseUrl` = `http://localhost:8080`.
+3. Clic derecho en la colección → *Run collection* → *Run*.
+
+**Resultado obtenido (2026-10-03) contra PostgreSQL real: 78 de 78 correctas.**
+
+### Verificación en pgAdmin 4
+
+Después de ejecutar la colección, en `ecomarket_db` → *Tables* → *View/Edit Data* se ven registros en todas las tablas:
+`usuarios` (contraseñas con BCrypt), `comercios` (con latitud y longitud), `productos`, `producto_eco_etiqueta`,
+`preferencias`, `busquedas`, `visitas`, `suscripciones` y `promociones`.
+
+### Evidencias sugeridas para el informe (Cap. IV)
+
+| Sección del informe | Evidencia |
+|---|---|
+| 4.2.x.2 Development Evidence | Historial de commits de cada rama `feature/fase-N` (`git log --oneline --graph`). |
+| 4.2.x.3 Execution Evidence | Capturas de Postman (Runner con 78/78) y de pgAdmin con las tablas y los datos. |
+| 4.2.x.4 Services Documentation | Capturas de Swagger UI (grupos, un endpoint con su JSON de ejemplo y la ventana Authorize) y la tabla de endpoints del README. |
+| 4.2.x.5 Software Deployment | Pendiente: despliegue en la nube (TS09). |
