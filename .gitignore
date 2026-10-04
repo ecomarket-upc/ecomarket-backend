@@ -35,3 +35,7 @@ build/
 ### Environment ###
 .env
 *.env
+
+### Variables de entorno (claves de Gemini, base de datos) ###
+.env
+*.env
