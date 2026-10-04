@@ -6,8 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class EcomarketBackendApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(EcomarketBackendApplication.class, args);
-	}
-
+    public static void main(String[] args) {
+        SpringApplication.run(EcomarketBackendApplication.class, args);
+    }
 }

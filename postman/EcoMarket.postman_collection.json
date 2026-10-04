@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "EcoMarket API",
-    "description": "Colección para probar la API de EcoMarket. Ejecútala en orden con el Collection Runner: los tokens y los ids se guardan solos en las variables de la colección.",
+    "name": "EcoMarket API v2",
+    "description": "Pruebas de la API de EcoMarket. Ejecutar en orden con el Collection Runner: los tokens y los ids se guardan solos. Cada petición indica entre paréntesis el código HTTP esperado.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [
@@ -10,69 +10,27 @@
       "script": {
         "type": "text/javascript",
         "exec": [
-          "if (!pm.collectionVariables.get(\"consumerEmail\")) {",
+          "if (!pm.collectionVariables.get(\"sufijo\")) {",
           "  const n = Date.now();",
-          "  pm.collectionVariables.set(\"consumerEmail\", `lucia${n}@correo.com`);",
-          "  pm.collectionVariables.set(\"sellerEmail\", `rosa${n}@correo.com`);",
-          "}"
+          "  pm.collectionVariables.set(\"sufijo\", String(n));",
+          "  pm.collectionVariables.set(\"correoConsumidor\", `lucia${n}@correo.com`);",
+          "  pm.collectionVariables.set(\"correoComerciante\", `rosa${n}@correo.com`);",
+          "  pm.collectionVariables.set(\"correoComerciante2\", `pedro${n}@correo.com`);",
+          "}",
+          "const hoy = new Date();",
+          "const semana = new Date(hoy.getTime() + 7 * 24 * 3600 * 1000);",
+          "pm.collectionVariables.set(\"hoy\", hoy.toISOString().slice(0, 10));",
+          "pm.collectionVariables.set(\"enUnaSemana\", semana.toISOString().slice(0, 10));"
         ]
       }
     }
   ],
   "item": [
     {
-      "name": "1. Autenticación",
+      "name": "1. Autenticación (TS01)",
       "item": [
         {
-          "name": "Registrar consumidor",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/register",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "register"
-              ]
-            },
-            "description": "Guarda el token en {{consumerToken}}. Cambia consumerEmail si ya existe.",
-            "auth": {
-              "type": "noauth"
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"firstName\": \"Lucía\",\n  \"lastName\": \"Quispe\",\n  \"email\": \"{{consumerEmail}}\",\n  \"password\": \"Clave2026\",\n  \"role\": \"ROLE_CONSUMER\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
-                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"consumerToken\", pm.response.json().token); }"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Registrar comerciante",
+          "name": "Registrar consumidor (201)",
           "request": {
             "method": "POST",
             "header": [
@@ -97,7 +55,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"firstName\": \"Rosa\",\n  \"lastName\": \"Huamán\",\n  \"email\": \"{{sellerEmail}}\",\n  \"password\": \"Clave2026\",\n  \"role\": \"ROLE_SELLER\"\n}",
+              "raw": "{\n  \"nombres\": \"Lucía\",\n  \"apellidos\": \"Quispe\",\n  \"correo\": \"{{correoConsumidor}}\",\n  \"contrasena\": \"Clave2026\",\n  \"rol\": \"CONSUMIDOR\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -112,14 +70,201 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
-                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"sellerToken\", pm.response.json().token); }"
+                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"tokenConsumidor\", pm.response.json().token); }",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"consumidorId\", pm.response.json().usuario.id); }"
                 ]
               }
             }
           ]
         },
         {
-          "name": "Login administrador",
+          "name": "Registrar consumidor repetido (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombres\": \"Lucía\",\n  \"apellidos\": \"Quispe\",\n  \"correo\": \"{{correoConsumidor}}\",\n  \"contrasena\": \"Clave2026\",\n  \"rol\": \"CONSUMIDOR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar con datos inválidos (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombres\": \"\",\n  \"apellidos\": \"X\",\n  \"correo\": \"malo\",\n  \"contrasena\": \"corta\",\n  \"rol\": \"ADMINISTRADOR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar comerciante (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombres\": \"Rosa\",\n  \"apellidos\": \"Huamán\",\n  \"correo\": \"{{correoComerciante}}\",\n  \"contrasena\": \"Clave2026\",\n  \"rol\": \"COMERCIANTE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"tokenComerciante\", pm.response.json().token); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar otro comerciante (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombres\": \"Pedro\",\n  \"apellidos\": \"Ríos\",\n  \"correo\": \"{{correoComerciante2}}\",\n  \"contrasena\": \"Clave2026\",\n  \"rol\": \"COMERCIANTE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"tokenComerciante2\", pm.response.json().token); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login administrador (200)",
           "request": {
             "method": "POST",
             "header": [
@@ -139,13 +284,12 @@
                 "login"
               ]
             },
-            "description": "El administrador se crea al arrancar (ADMIN_EMAIL / ADMIN_PASSWORD).",
             "auth": {
               "type": "noauth"
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@ecomarket.pe\",\n  \"password\": \"Admin12345!\"\n}",
+              "raw": "{\n  \"correo\": \"admin@ecomarket.pe\",\n  \"contrasena\": \"Admin12345\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -160,54 +304,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
-                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"adminToken\", pm.response.json().token); }"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Login comerciante",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "login"
-              ]
-            },
-            "auth": {
-              "type": "noauth"
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"{{sellerEmail}}\",\n  \"password\": \"Clave2026\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
-                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"sellerToken\", pm.response.json().token); }"
+                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"tokenAdmin\", pm.response.json().token); }"
                 ]
               }
             }
@@ -239,7 +336,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@ecomarket.pe\",\n  \"password\": \"incorrecta1\"\n}",
+              "raw": "{\n  \"correo\": \"admin@ecomarket.pe\",\n  \"contrasena\": \"Incorrecta1\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -258,61 +355,26 @@
               }
             }
           ]
-        },
+        }
+      ]
+    },
+    {
+      "name": "2. Usuarios (US29, US38)",
+      "item": [
         {
-          "name": "Usuario actual",
+          "name": "Mi perfil sin token (401)",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/auth/me",
+              "raw": "{{baseUrl}}/api/usuarios/perfil",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "auth",
-                "me"
-              ]
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{sellerToken}}",
-                  "type": "string"
-                }
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
-                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"sellerId\", pm.response.json().id); }"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Usuario actual sin token (401)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/me",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "me"
+                "usuarios",
+                "perfil"
               ]
             },
             "auth": {
@@ -330,25 +392,21 @@
               }
             }
           ]
-        }
-      ]
-    },
-    {
-      "name": "2. Usuarios",
-      "item": [
+        },
         {
-          "name": "Listar usuarios (admin)",
+          "name": "Mi perfil (200)",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/usuarios",
+              "raw": "{{baseUrl}}/api/usuarios/perfil",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "usuarios"
+                "usuarios",
+                "perfil"
               ]
             },
             "auth": {
@@ -356,10 +414,116 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{adminToken}}",
+                  "value": "{{tokenConsumidor}}",
                   "type": "string"
                 }
               ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar perfil con contraseña corta (400)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios/perfil",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios",
+                "perfil"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenConsumidor}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombres\": \"Lucía\",\n  \"apellidos\": \"Quispe Rojas\",\n  \"contrasena\": \"corta\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar perfil (200)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios/perfil",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios",
+                "perfil"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenConsumidor}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombres\": \"Lucía\",\n  \"apellidos\": \"Quispe Rojas\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "event": [
@@ -394,7 +558,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{consumerToken}}",
+                  "value": "{{tokenConsumidor}}",
                   "type": "string"
                 }
               ]
@@ -413,19 +577,18 @@
           ]
         },
         {
-          "name": "Consultar mi usuario",
+          "name": "Listar usuarios (admin) (200)",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/usuarios/{{sellerId}}",
+              "raw": "{{baseUrl}}/api/usuarios",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "usuarios",
-                "{{sellerId}}"
+                "usuarios"
               ]
             },
             "auth": {
@@ -433,63 +596,10 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{sellerToken}}",
+                  "value": "{{tokenAdmin}}",
                   "type": "string"
                 }
               ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Actualizar mi perfil",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/usuarios/{{sellerId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "usuarios",
-                "{{sellerId}}"
-              ]
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{sellerToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"firstName\": \"Rosa María\",\n  \"lastName\": \"Huamán\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
             }
           },
           "event": [
@@ -507,510 +617,10 @@
       ]
     },
     {
-      "name": "3. Comercios",
+      "name": "3. Categorías y Eco-Etiquetas (TS05, US28)",
       "item": [
         {
-          "name": "Registrar comercio con coordenadas (comerciante)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/comercios",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "comercios"
-              ]
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{sellerToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Granel Verde\",\n  \"description\": \"Tienda a granel de productos orgánicos y sin empaques plásticos\",\n  \"phone\": \"987654321\",\n  \"contactEmail\": \"contacto@granelverde.pe\",\n  \"openingHours\": \"Lun-Sáb 9:00-19:00\",\n  \"addressLine\": \"Av. José Larco 345\",\n  \"district\": \"Miraflores\",\n  \"city\": \"Lima\",\n  \"latitude\": -12.1211,\n  \"longitude\": -77.0297\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
-                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"storeId\", pm.response.json().id); }"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Registrar comercio sin coordenadas (geocoding)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/comercios",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "comercios"
-              ]
-            },
-            "description": "La dirección se convierte en latitud y longitud con OpenStreetMap Nominatim.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{sellerToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Bodega La Chacra\",\n  \"description\": \"Tienda a granel de productos orgánicos y sin empaques plásticos\",\n  \"phone\": \"987654321\",\n  \"contactEmail\": \"contacto@granelverde.pe\",\n  \"openingHours\": \"Lun-Sáb 9:00-19:00\",\n  \"addressLine\": \"Avenida Arequipa 2450\",\n  \"district\": \"Lince\",\n  \"city\": \"Lima\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Registrar comercio como consumidor (403)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/comercios",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "comercios"
-              ]
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{consumerToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Granel Verde\",\n  \"description\": \"Tienda a granel de productos orgánicos y sin empaques plásticos\",\n  \"phone\": \"987654321\",\n  \"contactEmail\": \"contacto@granelverde.pe\",\n  \"openingHours\": \"Lun-Sáb 9:00-19:00\",\n  \"addressLine\": \"Av. José Larco 345\",\n  \"district\": \"Miraflores\",\n  \"city\": \"Lima\",\n  \"latitude\": -12.1211,\n  \"longitude\": -77.0297\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 403\", () => pm.response.to.have.status(403));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Registrar comercio inválido (400)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/comercios",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "comercios"
-              ]
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{sellerToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"\",\n  \"district\": \"Lince\",\n  \"city\": \"Lima\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 400\", () => pm.response.to.have.status(400));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Mis comercios (comerciante)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/comercios/mis-comercios",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "comercios",
-                "mis-comercios"
-              ]
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{sellerToken}}",
-                  "type": "string"
-                }
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Comercios pendientes (admin)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/comercios/pendientes",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "comercios",
-                "pendientes"
-              ]
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{adminToken}}",
-                  "type": "string"
-                }
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Aprobar comercio (admin)",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/comercios/{{storeId}}/validacion",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "comercios",
-                "{{storeId}}",
-                "validacion"
-              ]
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{adminToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"APPROVED\",\n  \"comment\": \"Datos verificados\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Listar comercios aprobados",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/comercios",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "comercios"
-              ]
-            },
-            "auth": {
-              "type": "noauth"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Listar comercios por distrito",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/comercios?distrito=Miraflores",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "comercios"
-              ],
-              "query": [
-                {
-                  "key": "distrito",
-                  "value": "Miraflores"
-                }
-              ]
-            },
-            "auth": {
-              "type": "noauth"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Detalle de comercio",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/comercios/{{storeId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "comercios",
-                "{{storeId}}"
-              ]
-            },
-            "auth": {
-              "type": "noauth"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Actualizar comercio (dueño)",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/comercios/{{storeId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "comercios",
-                "{{storeId}}"
-              ]
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{sellerToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Granel Verde\",\n  \"description\": \"Tienda a granel de productos orgánicos y sin empaques plásticos\",\n  \"phone\": \"987654321\",\n  \"contactEmail\": \"contacto@granelverde.pe\",\n  \"openingHours\": \"Lun-Dom 8:00-20:00\",\n  \"addressLine\": \"Av. José Larco 345\",\n  \"district\": \"Miraflores\",\n  \"city\": \"Lima\",\n  \"latitude\": -12.1211,\n  \"longitude\": -77.0297\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
-                ]
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "4. Categorías",
-      "item": [
-        {
-          "name": "Listar categorías",
+          "name": "Listar categorías (200)",
           "request": {
             "method": "GET",
             "header": [],
@@ -1035,60 +645,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
-                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"categoryId\", pm.response.json()[0].id); }"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Crear categoría (admin)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/categorias",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "categorias"
-              ]
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{adminToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Mascotas\",\n  \"description\": \"Productos sostenibles para mascotas\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
-                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"newCategoryId\", pm.response.json().id); }"
+                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"categoriaId\", pm.response.json()[0].id); }"
                 ]
               }
             }
@@ -1119,14 +676,14 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{sellerToken}}",
+                  "value": "{{tokenComerciante}}",
                   "type": "string"
                 }
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Otra\"\n}",
+              "raw": "{\n  \"nombre\": \"Mascotas\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1147,9 +704,9 @@
           ]
         },
         {
-          "name": "Actualizar categoría (admin)",
+          "name": "Crear categoría (admin) (201)",
           "request": {
-            "method": "PUT",
+            "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
@@ -1157,14 +714,13 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/categorias/{{newCategoryId}}",
+              "raw": "{{baseUrl}}/api/categorias",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "categorias",
-                "{{newCategoryId}}"
+                "categorias"
               ]
             },
             "auth": {
@@ -1172,14 +728,14 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{adminToken}}",
+                  "value": "{{tokenAdmin}}",
                   "type": "string"
                 }
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Mascotas\",\n  \"description\": \"Accesorios y alimentos para mascotas\"\n}",
+              "raw": "{\n  \"nombre\": \"Mascotas {{sufijo}}\",\n  \"descripcion\": \"Productos para mascotas\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1193,26 +749,27 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"nuevaCategoriaId\", pm.response.json().id); }"
                 ]
               }
             }
           ]
         },
         {
-          "name": "Eliminar categoría (admin)",
+          "name": "Eliminar categoría (admin) (204)",
           "request": {
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/categorias/{{newCategoryId}}",
+              "raw": "{{baseUrl}}/api/categorias/{{nuevaCategoriaId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "categorias",
-                "{{newCategoryId}}"
+                "{{nuevaCategoriaId}}"
               ]
             },
             "auth": {
@@ -1220,7 +777,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{adminToken}}",
+                  "value": "{{tokenAdmin}}",
                   "type": "string"
                 }
               ]
@@ -1237,14 +794,41 @@
               }
             }
           ]
-        }
-      ]
-    },
-    {
-      "name": "5. Eco-Etiquetas",
-      "item": [
+        },
         {
-          "name": "Listar eco-etiquetas",
+          "name": "Ver categoría inexistente (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/categorias/999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "categorias",
+                "999999"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar Eco-Etiquetas (200)",
           "request": {
             "method": "GET",
             "header": [],
@@ -1269,14 +853,15 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
-                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"ecoLabelId\", pm.response.json()[0].id); }"
+                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"ecoEtiquetaId\", pm.response.json().find(e => e.nombre === 'Venta a granel').id); }",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"ecoEtiquetaId2\", pm.response.json().find(e => e.nombre === 'Orgánico').id); }"
                 ]
               }
             }
           ]
         },
         {
-          "name": "Crear eco-etiqueta (admin)",
+          "name": "Crear Eco-Etiqueta (admin) (201)",
           "request": {
             "method": "POST",
             "header": [
@@ -1300,14 +885,14 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{adminToken}}",
+                  "value": "{{tokenAdmin}}",
                   "type": "string"
                 }
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Comercio justo\",\n  \"description\": \"Pago justo a productores\",\n  \"criteria\": \"Certificación o compra directa al productor\",\n  \"keywords\": [\n    \"comercio justo\",\n    \"compra directa\"\n  ]\n}",
+              "raw": "{\n  \"nombre\": \"Comercio justo {{sufijo}}\",\n  \"descripcion\": \"Pago justo a productores\",\n  \"criterio\": \"Compra directa al productor\",\n  \"palabrasClave\": \"comercio justo, compra directa\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1322,14 +907,300 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
-                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"newEcoLabelId\", pm.response.json().id); }"
+                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"nuevaEtiquetaId\", pm.response.json().id); }"
                 ]
               }
             }
           ]
         },
         {
-          "name": "Actualizar eco-etiqueta (admin)",
+          "name": "Crear Eco-Etiqueta como comerciante (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/eco-etiquetas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "eco-etiquetas"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComerciante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"No autorizada\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Comercios y geolocalización (TS02, TS03, TS10)",
+      "item": [
+        {
+          "name": "Registrar comercio (geocodificación) (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/comercios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "comercios"
+              ]
+            },
+            "description": "Sin latitud ni longitud: se calculan con OpenStreetMap Nominatim (necesita internet).",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComerciante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Granel Verde\",\n  \"descripcion\": \"Tienda a granel de productos orgánicos\",\n  \"telefono\": \"987654321\",\n  \"correoContacto\": \"contacto@granelverde.pe\",\n  \"horario\": \"Lun-Sáb 9:00-19:00\",\n  \"direccion\": \"Avenida José Larco 345\",\n  \"distrito\": \"Miraflores\",\n  \"ciudad\": \"Lima\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"comercioId\", pm.response.json().id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar comercio como consumidor (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/comercios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "comercios"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenConsumidor}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Granel Verde\",\n  \"descripcion\": \"Tienda a granel de productos orgánicos\",\n  \"telefono\": \"987654321\",\n  \"correoContacto\": \"contacto@granelverde.pe\",\n  \"horario\": \"Lun-Sáb 9:00-19:00\",\n  \"direccion\": \"Avenida José Larco 345\",\n  \"distrito\": \"Miraflores\",\n  \"ciudad\": \"Lima\",\n  \"latitud\": -12.1211,\n  \"longitud\": -77.0297\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar comercio con dirección no ubicable (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/comercios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "comercios"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComerciante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Granel Verde\",\n  \"descripcion\": \"Tienda a granel de productos orgánicos\",\n  \"telefono\": \"987654321\",\n  \"correoContacto\": \"contacto@granelverde.pe\",\n  \"horario\": \"Lun-Sáb 9:00-19:00\",\n  \"direccion\": \"Calle Inventada 99999 zzz\",\n  \"distrito\": \"Ninguno\",\n  \"ciudad\": \"Atlantida\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detalle de comercio pendiente sin token (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/comercios/{{comercioId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "comercios",
+                "{{comercioId}}"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detalle de comercio pendiente (dueño) (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/comercios/{{comercioId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "comercios",
+                "{{comercioId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComerciante}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar comercio ajeno (403)",
           "request": {
             "method": "PUT",
             "header": [
@@ -1339,14 +1210,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/eco-etiquetas/{{newEcoLabelId}}",
+              "raw": "{{baseUrl}}/api/comercios/{{comercioId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "eco-etiquetas",
-                "{{newEcoLabelId}}"
+                "comercios",
+                "{{comercioId}}"
               ]
             },
             "auth": {
@@ -1354,14 +1225,161 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{adminToken}}",
+                  "value": "{{tokenComerciante2}}",
                   "type": "string"
                 }
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Comercio justo\",\n  \"description\": \"Pago justo a productores locales\",\n  \"keywords\": [\n    \"comercio justo\"\n  ]\n}",
+              "raw": "{\n  \"nombre\": \"Granel Verde\",\n  \"descripcion\": \"Tienda a granel de productos orgánicos\",\n  \"telefono\": \"987654321\",\n  \"correoContacto\": \"contacto@granelverde.pe\",\n  \"horario\": \"Lun-Sáb 9:00-19:00\",\n  \"direccion\": \"Avenida José Larco 345\",\n  \"distrito\": \"Miraflores\",\n  \"ciudad\": \"Lima\",\n  \"latitud\": -12.1211,\n  \"longitud\": -77.0297\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Comercios pendientes (admin) (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/comercios/pendientes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "comercios",
+                "pendientes"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rechazar sin motivo (400)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/comercios/{{comercioId}}/validacion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "comercios",
+                "{{comercioId}}",
+                "validacion"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"REJECTED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Aprobar comercio (admin) (200)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/comercios/{{comercioId}}/validacion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "comercios",
+                "{{comercioId}}",
+                "validacion"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"APPROVED\",\n  \"motivo\": \"Datos verificados\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1382,19 +1400,50 @@
           ]
         },
         {
-          "name": "Eliminar eco-etiqueta (admin)",
+          "name": "Listar comercios aprobados (200)",
           "request": {
-            "method": "DELETE",
+            "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/eco-etiquetas/{{newEcoLabelId}}",
+              "raw": "{{baseUrl}}/api/comercios",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "eco-etiquetas",
-                "{{newEcoLabelId}}"
+                "comercios"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mis comercios (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/comercios/mis-comercios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "comercios",
+                "mis-comercios"
               ]
             },
             "auth": {
@@ -1402,7 +1451,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{adminToken}}",
+                  "value": "{{tokenComerciante}}",
                   "type": "string"
                 }
               ]
@@ -1414,7 +1463,190 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Responde 204\", () => pm.response.to.have.status(204));"
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar comercio (dueño) (200)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/comercios/{{comercioId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "comercios",
+                "{{comercioId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComerciante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Granel Verde\",\n  \"descripcion\": \"Tienda a granel de productos orgánicos\",\n  \"telefono\": \"987654321\",\n  \"correoContacto\": \"contacto@granelverde.pe\",\n  \"horario\": \"Lun-Dom 8:00-20:00\",\n  \"direccion\": \"Avenida José Larco 345\",\n  \"distrito\": \"Miraflores\",\n  \"ciudad\": \"Lima\",\n  \"latitud\": -12.1211,\n  \"longitud\": -77.0297\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Comercios cercanos (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/busqueda/cercanos?lat=-12.1020&lng=-77.0420&radio=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "busqueda",
+                "cercanos"
+              ],
+              "query": [
+                {
+                  "key": "lat",
+                  "value": "-12.1020"
+                },
+                {
+                  "key": "lng",
+                  "value": "-77.0420"
+                },
+                {
+                  "key": "radio",
+                  "value": "5"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Comercios cercanos con radio mayor a 50 (400)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/busqueda/cercanos?lat=-12.1&lng=-77.0&radio=60",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "busqueda",
+                "cercanos"
+              ],
+              "query": [
+                {
+                  "key": "lat",
+                  "value": "-12.1"
+                },
+                {
+                  "key": "lng",
+                  "value": "-77.0"
+                },
+                {
+                  "key": "radio",
+                  "value": "60"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar comercios por texto (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/busqueda/comercios?texto=verde",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "busqueda",
+                "comercios"
+              ],
+              "query": [
+                {
+                  "key": "texto",
+                  "value": "verde"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
                 ]
               }
             }
@@ -1423,10 +1655,10 @@
       ]
     },
     {
-      "name": "6. Productos",
+      "name": "5. Productos, búsqueda e IA (TS04, TS06)",
       "item": [
         {
-          "name": "Publicar producto (comerciante)",
+          "name": "Publicar producto (clasificación automática) (201)",
           "request": {
             "method": "POST",
             "header": [
@@ -1450,14 +1682,14 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{sellerToken}}",
+                  "value": "{{tokenComerciante}}",
                   "type": "string"
                 }
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"storeId\": {{storeId}},\n  \"categoryId\": {{categoryId}},\n  \"name\": \"Quinua blanca a granel\",\n  \"description\": \"Quinua orgánica de productores de Puno, vendida por kilo. Trae tu envase.\",\n  \"price\": 12.5,\n  \"stock\": 40,\n  \"imageUrl\": \"https://ejemplo.com/quinua.jpg\"\n}",
+              "raw": "{\n  \"comercioId\": {{comercioId}},\n  \"categoriaId\": {{categoriaId}},\n  \"nombre\": \"Quinua blanca\",\n  \"descripcion\": \"Quinua orgánica de productores de Puno, vendida a granel por kilo\",\n  \"precio\": 12.5,\n  \"stock\": 40\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1472,7 +1704,60 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
-                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"productId\", pm.response.json().id); }"
+                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"productoId\", pm.response.json().id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publicar producto sin Eco-Etiquetas aplicables (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "productos"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComerciante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comercioId\": {{comercioId}},\n  \"categoriaId\": {{categoriaId}},\n  \"nombre\": \"Fideos\",\n  \"descripcion\": \"Paquete de fideos tallarín\",\n  \"precio\": 12.5,\n  \"stock\": 40\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"productoId2\", pm.response.json().id); }"
                 ]
               }
             }
@@ -1503,14 +1788,14 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{sellerToken}}",
+                  "value": "{{tokenComerciante}}",
                   "type": "string"
                 }
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"storeId\": {{storeId}},\n  \"categoryId\": {{categoryId}},\n  \"name\": \"Arroz\",\n  \"price\": -1,\n  \"stock\": 1\n}",
+              "raw": "{\n  \"comercioId\": {{comercioId}},\n  \"categoriaId\": {{categoriaId}},\n  \"nombre\": \"Quinua blanca\",\n  \"descripcion\": \"Quinua orgánica de productores de Puno, vendida a granel por kilo\",\n  \"precio\": -1,\n  \"stock\": -3\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1531,51 +1816,15 @@
           ]
         },
         {
-          "name": "Clasificar producto con IA (comerciante)",
+          "name": "Publicar producto en comercio ajeno (403)",
           "request": {
             "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/productos/{{productId}}/clasificar",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "productos",
-                "{{productId}}",
-                "clasificar"
-              ]
-            },
-            "description": "engine = gemini si hay GEMINI_API_KEY; si no, keywords.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{sellerToken}}",
-                  "type": "string"
-                }
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
-                ]
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
               }
-            }
-          ]
-        },
-        {
-          "name": "Listar productos",
-          "request": {
-            "method": "GET",
-            "header": [],
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/productos",
               "host": [
@@ -1587,167 +1836,18 @@
               ]
             },
             "auth": {
-              "type": "noauth"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Listar productos por comercio y categoría",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/productos?comercioId={{storeId}}&categoriaId={{categoryId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "productos"
-              ],
-              "query": [
-                {
-                  "key": "comercioId",
-                  "value": "{{storeId}}"
-                },
-                {
-                  "key": "categoriaId",
-                  "value": "{{categoryId}}"
-                }
-              ]
-            },
-            "auth": {
-              "type": "noauth"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Mis productos (comerciante)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/productos/mis-productos",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "productos",
-                "mis-productos"
-              ]
-            },
-            "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{sellerToken}}",
-                  "type": "string"
-                }
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Detalle de producto",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/productos/{{productId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "productos",
-                "{{productId}}"
-              ]
-            },
-            "auth": {
-              "type": "noauth"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Actualizar producto (dueño)",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/productos/{{productId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "productos",
-                "{{productId}}"
-              ]
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{sellerToken}}",
+                  "value": "{{tokenComerciante2}}",
                   "type": "string"
                 }
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"categoryId\": {{categoryId}},\n  \"name\": \"Quinua blanca a granel\",\n  \"description\": \"Quinua orgánica de Puno, por kilo.\",\n  \"price\": 11.9,\n  \"stock\": 35,\n  \"ecoLabelIds\": [\n    {{ecoLabelId}}\n  ]\n}",
+              "raw": "{\n  \"comercioId\": {{comercioId}},\n  \"categoriaId\": {{categoriaId}},\n  \"nombre\": \"Quinua blanca\",\n  \"descripcion\": \"Quinua orgánica de productores de Puno, vendida a granel por kilo\",\n  \"precio\": 12.5,\n  \"stock\": 40\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1761,26 +1861,27 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                  "pm.test(\"Responde 403\", () => pm.response.to.have.status(403));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "Eliminar producto (dueño)",
+          "name": "Clasificar producto (dueño) (200)",
           "request": {
-            "method": "DELETE",
+            "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/productos/{{productId}}",
+              "raw": "{{baseUrl}}/api/productos/{{productoId}}/clasificar",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "productos",
-                "{{productId}}"
+                "{{productoId}}",
+                "clasificar"
               ]
             },
             "auth": {
@@ -1788,7 +1889,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{sellerToken}}",
+                  "value": "{{tokenComerciante}}",
                   "type": "string"
                 }
               ]
@@ -1800,48 +1901,68 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Responde 204\", () => pm.response.to.have.status(204));"
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
                 ]
               }
             }
           ]
-        }
-      ]
-    },
-    {
-      "name": "7. Búsqueda",
-      "item": [
+        },
         {
-          "name": "Comercios cercanos",
+          "name": "Clasificar producto ajeno (403)",
           "request": {
-            "method": "GET",
+            "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/busqueda/cercanos?lat=-12.1020&lng=-77.0420&radio=5",
+              "raw": "{{baseUrl}}/api/productos/{{productoId}}/clasificar",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "busqueda",
-                "cercanos"
-              ],
-              "query": [
-                {
-                  "key": "lat",
-                  "value": "-12.1020"
-                },
-                {
-                  "key": "lng",
-                  "value": "-77.0420"
-                },
-                {
-                  "key": "radio",
-                  "value": "5"
-                }
+                "productos",
+                "{{productoId}}",
+                "clasificar"
               ]
             },
-            "description": "Óvalo Gutiérrez, a unos 2.5 km del comercio de ejemplo.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComerciante2}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detalle de producto (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/productos/{{productoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "productos",
+                "{{productoId}}"
+              ]
+            },
             "auth": {
               "type": "noauth"
             }
@@ -1859,33 +1980,20 @@
           ]
         },
         {
-          "name": "Comercios cercanos con radio inválido (400)",
+          "name": "Catálogo del comercio (200)",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/busqueda/cercanos?lat=-12.1&lng=-77.0&radio=500",
+              "raw": "{{baseUrl}}/api/comercios/{{comercioId}}/productos",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "busqueda",
-                "cercanos"
-              ],
-              "query": [
-                {
-                  "key": "lat",
-                  "value": "-12.1"
-                },
-                {
-                  "key": "lng",
-                  "value": "-77.0"
-                },
-                {
-                  "key": "radio",
-                  "value": "500"
-                }
+                "comercios",
+                "{{comercioId}}",
+                "productos"
               ]
             },
             "auth": {
@@ -1898,14 +2006,14 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Responde 400\", () => pm.response.to.have.status(400));"
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "Buscar productos por nombre",
+          "name": "Buscar productos por nombre (200)",
           "request": {
             "method": "GET",
             "header": [],
@@ -1927,6 +2035,55 @@
               ]
             },
             "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenConsumidor}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar por categoría y Eco-Etiqueta (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/busqueda/productos?categoria=Alimentos&ecoEtiqueta=granel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "busqueda",
+                "productos"
+              ],
+              "query": [
+                {
+                  "key": "categoria",
+                  "value": "Alimentos"
+                },
+                {
+                  "key": "ecoEtiqueta",
+                  "value": "granel"
+                }
+              ]
+            },
+            "auth": {
               "type": "noauth"
             }
           },
@@ -1943,33 +2100,167 @@
           ]
         },
         {
-          "name": "Buscar productos por categoría y eco-etiqueta",
+          "name": "Comparar productos (200)",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/busqueda/productos?categoria={{categoryId}}&ecoEtiqueta={{ecoLabelId}}",
+              "raw": "{{baseUrl}}/api/productos/comparar?ids={{productoId}},{{productoId2}}&lat=-12.1020&lng=-77.0420",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "busqueda",
-                "productos"
+                "productos",
+                "comparar"
               ],
               "query": [
                 {
-                  "key": "categoria",
-                  "value": "{{categoryId}}"
+                  "key": "ids",
+                  "value": "{{productoId}},{{productoId2}}"
                 },
                 {
-                  "key": "ecoEtiqueta",
-                  "value": "{{ecoLabelId}}"
+                  "key": "lat",
+                  "value": "-12.1020"
+                },
+                {
+                  "key": "lng",
+                  "value": "-77.0420"
                 }
               ]
             },
             "auth": {
               "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Comparar un solo producto (400)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/productos/comparar?ids={{productoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "productos",
+                "comparar"
+              ],
+              "query": [
+                {
+                  "key": "ids",
+                  "value": "{{productoId}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Corregir Eco-Etiquetas a mano (dueño) (200)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/productos/{{productoId2}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "productos",
+                "{{productoId2}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComerciante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comercioId\": {{comercioId}},\n  \"categoriaId\": {{categoriaId}},\n  \"nombre\": \"Fideos\",\n  \"descripcion\": \"Paquete de fideos tallarín\",\n  \"precio\": 12.5,\n  \"stock\": 40,\n  \"ecoEtiquetaIds\": [\n    {{ecoEtiquetaId}}\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mis productos (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/productos/mis-productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "productos",
+                "mis-productos"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComerciante}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "event": [
@@ -1987,22 +2278,26 @@
       ]
     },
     {
-      "name": "8. Limpieza",
+      "name": "6. Favoritos y preferencias (TS11)",
       "item": [
         {
-          "name": "Eliminar comercio y sus productos (dueño)",
+          "name": "Agregar favorito (201)",
           "request": {
-            "method": "DELETE",
-            "header": [],
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": {
-              "raw": "{{baseUrl}}/api/comercios/{{storeId}}",
+              "raw": "{{baseUrl}}/api/favoritos",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "comercios",
-                "{{storeId}}"
+                "favoritos"
               ]
             },
             "auth": {
@@ -2010,7 +2305,1004 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{sellerToken}}",
+                  "value": "{{tokenConsumidor}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comercioId\": {{comercioId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"favoritoId\", pm.response.json().id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Agregar favorito repetido (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/favoritos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "favoritos"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenConsumidor}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comercioId\": {{comercioId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mis favoritos (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/favoritos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "favoritos"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenConsumidor}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Guardar preferencias (200)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/preferencias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "preferencias"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenConsumidor}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ecoEtiquetaIds\": [\n    {{ecoEtiquetaId}},\n    {{ecoEtiquetaId2}}\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mis preferencias (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/preferencias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "preferencias"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenConsumidor}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. Visitas, estadísticas y resumen (TS13)",
+      "item": [
+        {
+          "name": "Visitar comercio desde una búsqueda (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/comercios/{{comercioId}}?busqueda=quinua",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "comercios",
+                "{{comercioId}}"
+              ],
+              "query": [
+                {
+                  "key": "busqueda",
+                  "value": "quinua"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenConsumidor}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Visitar producto desde una búsqueda (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/productos/{{productoId}}?busqueda=granel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "productos",
+                "{{productoId}}"
+              ],
+              "query": [
+                {
+                  "key": "busqueda",
+                  "value": "granel"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenConsumidor}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estadísticas del comercio (dueño) (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/comercios/{{comercioId}}/estadisticas?periodo=mes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "comercios",
+                "{{comercioId}}",
+                "estadisticas"
+              ],
+              "query": [
+                {
+                  "key": "periodo",
+                  "value": "mes"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComerciante}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estadísticas de comercio ajeno (403)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/comercios/{{comercioId}}/estadisticas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "comercios",
+                "{{comercioId}}",
+                "estadisticas"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComerciante2}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estadísticas con periodo inválido (400)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/comercios/{{comercioId}}/estadisticas?periodo=siglo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "comercios",
+                "{{comercioId}}",
+                "estadisticas"
+              ],
+              "query": [
+                {
+                  "key": "periodo",
+                  "value": "siglo"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComerciante}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Resumen de actividad del consumidor (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/consumidor/resumen",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "consumidor",
+                "resumen"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenConsumidor}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "8. Premium y promociones (TS14)",
+      "item": [
+        {
+          "name": "Promoción sin plan premium (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/promociones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "promociones"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComerciante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comercioId\": {{comercioId}},\n  \"titulo\": \"2x1 en granos\",\n  \"fechaInicio\": \"{{hoy}}\",\n  \"fechaFin\": \"{{enUnaSemana}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver plan del comercio (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/suscripciones?comercioId={{comercioId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "suscripciones"
+              ],
+              "query": [
+                {
+                  "key": "comercioId",
+                  "value": "{{comercioId}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComerciante}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Contratar plan premium (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/suscripciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "suscripciones"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComerciante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comercioId\": {{comercioId}},\n  \"meses\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Promoción con fechas invertidas (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/promociones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "promociones"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComerciante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comercioId\": {{comercioId}},\n  \"titulo\": \"2x1 en granos\",\n  \"fechaInicio\": \"{{enUnaSemana}}\",\n  \"fechaFin\": \"{{hoy}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publicar promoción (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/promociones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "promociones"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComerciante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comercioId\": {{comercioId}},\n  \"titulo\": \"2x1 en granos\",\n  \"descripcion\": \"Solo esta semana\",\n  \"fechaInicio\": \"{{hoy}}\",\n  \"fechaFin\": \"{{enUnaSemana}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detalle con premium y promoción (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/comercios/{{comercioId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "comercios",
+                "{{comercioId}}"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Productos destacados primero (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/busqueda/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "busqueda",
+                "productos"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estadísticas avanzadas (premium) (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/comercios/{{comercioId}}/estadisticas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "comercios",
+                "{{comercioId}}",
+                "estadisticas"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComerciante}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "9. Recomendaciones (TS12)",
+      "item": [
+        {
+          "name": "Productos recomendados (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recomendaciones/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recomendaciones",
+                "productos"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenConsumidor}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Comercios recomendados (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recomendaciones/comercios?lat=-12.1020&lng=-77.0420&radio=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recomendaciones",
+                "comercios"
+              ],
+              "query": [
+                {
+                  "key": "lat",
+                  "value": "-12.1020"
+                },
+                {
+                  "key": "lng",
+                  "value": "-77.0420"
+                },
+                {
+                  "key": "radio",
+                  "value": "5"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenConsumidor}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recomendaciones para comerciante (403)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recomendaciones/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recomendaciones",
+                "productos"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComerciante}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "10. Limpieza",
+      "item": [
+        {
+          "name": "Eliminar Eco-Etiqueta sin productos (admin) (204)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/eco-etiquetas/{{nuevaEtiquetaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "eco-etiquetas",
+                "{{nuevaEtiquetaId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenAdmin}}",
                   "type": "string"
                 }
               ]
@@ -2029,28 +3321,27 @@
           ]
         },
         {
-          "name": "Desactivar comerciante (admin)",
+          "name": "Quitar favorito (204)",
           "request": {
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/usuarios/{{sellerId}}",
+              "raw": "{{baseUrl}}/api/favoritos/{{favoritoId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "usuarios",
-                "{{sellerId}}"
+                "favoritos",
+                "{{favoritoId}}"
               ]
             },
-            "description": "Eliminación lógica: la cuenta ya no puede iniciar sesión.",
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{adminToken}}",
+                  "value": "{{tokenConsumidor}}",
                   "type": "string"
                 }
               ]
@@ -2063,6 +3354,163 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"Responde 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar producto (dueño) (204)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/productos/{{productoId2}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "productos",
+                "{{productoId2}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComerciante}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver producto eliminado (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/productos/{{productoId2}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "productos",
+                "{{productoId2}}"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Desactivar consumidor (admin) (200)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios/{{consumidorId}}/desactivar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios",
+                "{{consumidorId}}",
+                "desactivar"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login de cuenta desactivada (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"{{correoConsumidor}}\",\n  \"contrasena\": \"Clave2026\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 401\", () => pm.response.to.have.status(401));"
                 ]
               }
             }
@@ -2077,51 +3525,83 @@
       "value": "http://localhost:8080"
     },
     {
-      "key": "consumerEmail",
+      "key": "sufijo",
       "value": ""
     },
     {
-      "key": "sellerEmail",
+      "key": "correoConsumidor",
       "value": ""
     },
     {
-      "key": "consumerToken",
+      "key": "correoComerciante",
       "value": ""
     },
     {
-      "key": "sellerToken",
+      "key": "correoComerciante2",
       "value": ""
     },
     {
-      "key": "adminToken",
+      "key": "hoy",
       "value": ""
     },
     {
-      "key": "sellerId",
+      "key": "enUnaSemana",
       "value": ""
     },
     {
-      "key": "storeId",
+      "key": "tokenConsumidor",
       "value": ""
     },
     {
-      "key": "categoryId",
+      "key": "tokenComerciante",
       "value": ""
     },
     {
-      "key": "newCategoryId",
+      "key": "tokenComerciante2",
       "value": ""
     },
     {
-      "key": "ecoLabelId",
+      "key": "tokenAdmin",
       "value": ""
     },
     {
-      "key": "newEcoLabelId",
+      "key": "consumidorId",
       "value": ""
     },
     {
-      "key": "productId",
+      "key": "categoriaId",
+      "value": ""
+    },
+    {
+      "key": "nuevaCategoriaId",
+      "value": ""
+    },
+    {
+      "key": "ecoEtiquetaId",
+      "value": ""
+    },
+    {
+      "key": "ecoEtiquetaId2",
+      "value": ""
+    },
+    {
+      "key": "nuevaEtiquetaId",
+      "value": ""
+    },
+    {
+      "key": "comercioId",
+      "value": ""
+    },
+    {
+      "key": "productoId",
+      "value": ""
+    },
+    {
+      "key": "productoId2",
+      "value": ""
+    },
+    {
+      "key": "favoritoId",
       "value": ""
     }
   ]

@@ -1,147 +1,95 @@
 # EcoMarket Backend
 
-RESTful API de **EcoMarket**, el buscador inteligente de comercio local y sostenible.
+API RESTful de **EcoMarket**, el buscador inteligente de comercio local y sostenible.
 Proyecto del curso 1ASI0705 Arquitectura de Aplicaciones Web (UPC), Grupo 06.
 
-Conecta a consumidores con comercios locales sostenibles cercanos a su ubicación.
-Los comerciantes publican sus productos y un clasificador con IA les asigna eco-etiquetas
-("Venta a granel", "Sin envase plástico", "Producto local"...).
+Conecta a consumidores con comercios locales sostenibles cercanos. Los comerciantes publican sus productos y
+Google Gemini les sugiere Eco-Etiquetas ("Venta a granel", "Sin envase plástico", "Producto local"…).
 
-## Stack
+## Tecnologías
 
-- Java 21 y Spring Boot 4.1
-- Spring Web MVC, Spring Data JPA y Bean Validation
-- Spring Security con JWT (jjwt) y contraseñas con BCrypt
-- MySQL 8 (H2 en memoria para pruebas y demos)
-- springdoc-openapi (Swagger UI)
-- OpenStreetMap Nominatim para geocodificar direcciones
-- Google Gemini para clasificar productos, con un clasificador por palabras clave como respaldo
+Java 21 · Spring Boot · Spring Data JPA · PostgreSQL (pgAdmin 4) · Spring Security · JWT · BCrypt ·
+OpenAPI / Swagger · Postman · Google Gemini · OpenStreetMap Nominatim (geocodificación).
+
+## Estructura
+
+```text
+src/main/java/pe/edu/upc/ecomarket
+├── models        Entidades JPA (12 tablas + enum de estado del comercio)
+├── dto           JSON de entrada y salida
+├── repository    Interfaces JpaRepository
+├── services      Lógica de negocio
+├── controller    Endpoints REST
+├── exceptions    Errores propios y manejador global (400, 401, 403, 404, 409)
+├── security      JWT y filtro de autenticación
+└── config        Spring Security, Swagger y datos iniciales
+```
+
+La guía paso a paso de cada fase (qué archivo, en qué carpeta y cómo probarlo) está en
+[`docs/GUIA-BACKEND.md`](docs/GUIA-BACKEND.md).
 
 ## Cómo ejecutarlo
 
-Requisitos: JDK 21 o superior. Maven no hace falta, porque el proyecto trae el wrapper `mvnw`.
+1. En **pgAdmin 4** crear la base de datos `ecomarket_db`.
+2. Revisar usuario y contraseña de PostgreSQL en `src/main/resources/application.properties`
+   (o definir `DB_USERNAME` y `DB_PASSWORD`).
+3. Ejecutar en VS Code, o en la terminal:
+   ```bash
+   ./mvnw spring-boot:run
+   ```
+   (En Windows: `mvnw.cmd spring-boot:run`.) Las tablas y los datos iniciales se crean solos.
+4. Abrir Swagger: http://localhost:8080/swagger-ui.html
 
-### Rápido, sin instalar MySQL (perfil `h2`)
+Usuario administrador inicial: `admin@ecomarket.pe` / `Admin12345`.
 
-```bash
-./mvnw spring-boot:run -Dspring-boot.run.profiles=h2
-```
+## Pruebas
 
-En Windows usa `mvnw.cmd` en lugar de `./mvnw`. La base de datos vive en memoria y se borra al apagar la aplicación.
-
-### Con MySQL
-
-La base `ecomarket` se crea sola. Solo hay que indicar la contraseña:
-
-```bash
-DB_PASSWORD=tu_clave ./mvnw spring-boot:run
-```
-
-En PowerShell: `$env:DB_PASSWORD="tu_clave"; .\mvnw.cmd spring-boot:run`.
-
-### Pruebas
-
-```bash
-./mvnw test
-```
-
-Son pruebas de integración que levantan toda la API sobre H2 y prueban autenticación, roles, validaciones y el CRUD de cada módulo.
-
-## Documentación y pruebas manuales
-
-- **Swagger UI:** http://localhost:8080/swagger-ui.html. Primero haz login, copia el `token` y pégalo en el botón **Authorize**.
-- **Postman:** importa [`postman/EcoMarket.postman_collection.json`](postman/EcoMarket.postman_collection.json) y ejecútala en orden con el *Collection Runner*. Los tokens y los ids se guardan solos en las variables de la colección. Si la app corre en otro puerto, cambia la variable `baseUrl`.
-
-Usuario administrador por defecto: `admin@ecomarket.pe` / `Admin12345!`. Se crea al arrancar y se cambia con `ADMIN_EMAIL` y `ADMIN_PASSWORD`.
+- **Automatizadas** (H2 en memoria, no necesitan PostgreSQL ni internet): `./mvnw test`. Son 25 pruebas de integración
+  que cubren los criterios de aceptación de las User Stories y Technical Stories.
+- **Postman:** importar [`postman/EcoMarket.postman_collection.json`](postman/EcoMarket.postman_collection.json) y ejecutarla
+  completa con el *Collection Runner*. Son 78 peticiones, con los casos de error 400, 401, 403, 404 y 409. Los tokens y ids
+  se guardan solos. Si la API corre en otro puerto, cambiar la variable `baseUrl`.
 
 ## Variables de entorno
 
-| Variable | Para qué sirve | Valor por defecto |
+| Variable | Uso | Por defecto |
 |---|---|---|
+| `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | Conexión a PostgreSQL | `jdbc:postgresql://localhost:5432/ecomarket_db`, `postgres`, `postgres` |
 | `PORT` | Puerto HTTP | `8080` |
-| `DB_URL` | URL JDBC de MySQL | `jdbc:mysql://localhost:3306/ecomarket?createDatabaseIfNotExist=true...` |
-| `DB_USERNAME` / `DB_PASSWORD` | Credenciales de MySQL | `root` / vacío |
-| `JWT_SECRET` | Clave Base64 (mínimo 32 bytes) para firmar tokens | Clave de desarrollo; **cámbiala en producción** |
-| `JWT_EXPIRATION_MINUTES` | Duración del token | `60` |
-| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Administrador inicial | `admin@ecomarket.pe` / `Admin12345!` |
-| `CORS_ALLOWED_ORIGINS` | Orígenes del frontend, separados por coma | `http://localhost:4200` |
-| `GEMINI_API_KEY` | Activa la clasificación con Gemini | vacío (usa palabras clave) |
-| `GEMINI_MODEL` | Modelo de Gemini | `gemini-2.5-flash` |
-| `GEOCODING_ENABLED` | Activa la geocodificación con Nominatim | `true` |
+| `JWT_SECRETO` | Clave Base64 (mínimo 32 bytes) para firmar tokens | clave de desarrollo, **cambiar en producción** |
+| `JWT_EXPIRACION_MINUTOS` | Duración del token | `120` |
+| `ADMIN_CORREO`, `ADMIN_CONTRASENA` | Administrador inicial | `admin@ecomarket.pe`, `Admin12345` |
+| `GEMINI_API_KEY` | Clasificación con Google Gemini | vacío: usa las palabras clave |
+| `GEOCODIFICACION_HABILITADA` | Geocodificación con Nominatim | `true` |
+| `CORS_ORIGENES` | Frontend permitido | `http://localhost:4200` |
 
-Nunca subas claves reales al repositorio: el repo es público. Usa variables de entorno o un archivo `.env`, que ya está en `.gitignore`.
-
-## Arquitectura
-
-El código sigue **Domain-Driven Design**, con un paquete por *bounded context*:
-
-```
-pe.edu.upc.ecomarket
-├── shared     Kernel común: aggregate root auditable, excepciones, manejo global de errores, Swagger
-├── iam        Identidad y acceso: usuarios, roles, JWT, seguridad
-├── commerce   Comercios: registro, validación por el admin, geolocalización y búsqueda por cercanía
-└── catalog    Catálogo: categorías, eco-etiquetas, productos y clasificación con IA
-```
-
-Cada contexto tiene cuatro capas:
-
-| Capa | Contenido |
-|---|---|
-| `domain` | Aggregates, value objects, commands, queries, eventos e interfaces de servicio |
-| `application` | Implementación de los servicios (reglas de negocio), puertos de salida y ACL |
-| `infrastructure` | Repositorios JPA y adaptadores externos (JWT, BCrypt, Nominatim, Gemini) |
-| `interfaces` | Controladores REST, resources (DTOs) y assemblers |
-
-Los contextos no se llaman por dentro. Se comunican por **fachadas ACL** (`IamContextFacade`, `CommerceContextFacade`) y por **eventos de dominio** (`StoreDeletedEvent`: al borrar un comercio, catalog borra sus productos).
-
-### Roles y reglas principales
-
-- **Consumidor** (`ROLE_CONSUMER`): consulta comercios y productos.
-- **Comerciante** (`ROLE_SELLER`): registra sus comercios y productos, y solo puede editar lo suyo.
-- **Administrador** (`ROLE_ADMIN`): valida comercios y gestiona usuarios, categorías y eco-etiquetas. No se autoregistra.
-- Un comercio nuevo queda en `PENDING`. Ni él ni sus productos son públicos hasta que el admin lo apruebe (`APPROVED`).
-- Si el comercio no envía latitud y longitud, su dirección se geocodifica automáticamente.
+> La API key de Gemini **nunca** se escribe en el código ni se sube a GitHub (`.env` está en `.gitignore`).
 
 ## Endpoints
 
-| Recurso | Método y ruta | Acceso |
-|---|---|---|
-| Auth | `POST /api/auth/register`, `POST /api/auth/login` | Público |
-| Auth | `GET /api/auth/me` | Autenticado |
-| Usuarios | `GET /api/usuarios`, `DELETE /api/usuarios/{id}` | Admin |
-| Usuarios | `GET /api/usuarios/{id}`, `PUT /api/usuarios/{id}` | Admin o el propio usuario |
-| Comercios | `GET /api/comercios[?distrito=]`, `GET /api/comercios/{id}` | Público |
-| Comercios | `POST /api/comercios`, `GET /api/comercios/mis-comercios` | Comerciante |
-| Comercios | `PUT /api/comercios/{id}`, `DELETE /api/comercios/{id}` | Dueño o admin |
-| Comercios | `GET /api/comercios/pendientes`, `PATCH /api/comercios/{id}/validacion` | Admin |
-| Categorías | `GET /api/categorias[/{id}]` | Público |
-| Categorías | `POST`, `PUT /{id}`, `DELETE /{id}` | Admin |
-| Eco-etiquetas | `GET /api/eco-etiquetas[/{id}]` | Público |
-| Eco-etiquetas | `POST`, `PUT /{id}`, `DELETE /{id}` | Admin |
-| Productos | `GET /api/productos[?comercioId&categoriaId&ecoEtiquetaId]`, `GET /api/productos/{id}` | Público |
-| Productos | `POST /api/productos`, `GET /api/productos/mis-productos` | Comerciante |
-| Productos | `PUT /{id}`, `DELETE /{id}`, `POST /{id}/clasificar` | Dueño del comercio o admin |
-| Búsqueda | `GET /api/busqueda/cercanos?lat&lng&radio` | Público |
-| Búsqueda | `GET /api/busqueda/productos?nombre&categoria&ecoEtiqueta` | Público |
-
-Todos los errores responden con el mismo formato JSON:
-
-```json
-{
-  "timestamp": "2026-09-29T20:35:17Z",
-  "status": 400,
-  "error": "Bad Request",
-  "message": "Hay campos inválidos",
-  "path": "/api/comercios",
-  "errors": { "name": "El nombre es obligatorio" }
-}
-```
+| Recurso | Endpoints | Acceso | Historias |
+|---|---|---|---|
+| Autenticación | `POST /api/auth/register`, `POST /api/auth/login` | público | TS01, US01–US03 |
+| Usuarios | `GET /api/usuarios`, `PATCH /api/usuarios/{id}/desactivar` | admin | US29 |
+| Perfil | `GET`, `PUT /api/usuarios/perfil` | autenticado | US38 |
+| Categorías | `GET /api/categorias[/{id}]` · `POST`, `PUT /{id}`, `DELETE /{id}` | público · admin | TS05 |
+| Eco-Etiquetas | `GET /api/eco-etiquetas[/{id}]` · `POST`, `PUT /{id}`, `DELETE /{id}` (lógico si está en productos) | público · admin | TS05, US28 |
+| Comercios | `POST /api/comercios`, `GET /mis-comercios` | comerciante | TS02, US19 |
+| | `GET /api/comercios`, `GET /{id}`, `GET /{id}/productos` | público | US08, US10 |
+| | `PUT /{id}`, `DELETE /{id}` | dueño o admin | US21 |
+| | `GET /pendientes`, `PATCH /{id}/validacion` | admin | US30 |
+| Búsqueda | `GET /api/busqueda/cercanos?lat&lng&radio`, `/productos?nombre&categoria&ecoEtiqueta`, `/comercios?texto` | público | TS03, TS04, US05–US07, US15 |
+| Productos | `POST /api/productos` (clasifica con IA), `GET /mis-productos` | comerciante | TS04, US13, US20 |
+| | `GET /{id}`, `GET /comparar?ids&lat&lng` | público | US11, US12 |
+| | `PUT /{id}`, `DELETE /{id}`, `POST /{id}/clasificar` | dueño (o admin) | TS06, US16, US29 |
+| Favoritos | `POST`, `GET /api/favoritos`, `DELETE /{id}` | consumidor | TS11, US09 |
+| Preferencias | `GET`, `PUT /api/preferencias` | consumidor | TS11, US04 |
+| Recomendaciones | `GET /api/recomendaciones/productos`, `/comercios?lat&lng` | consumidor | TS12, US17, US18 |
+| Estadísticas | `GET /api/comercios/{id}/estadisticas?periodo` | dueño | TS13, US22, US23, US27 |
+| Resumen | `GET /api/consumidor/resumen` | consumidor | US31 |
+| Premium | `POST`, `GET /api/suscripciones` · `POST /api/promociones` | comerciante | TS14, US24–US26 |
 
 ## Flujo de trabajo (GitFlow)
 
-- `main`: versiones entregadas.
-- `develop`: integración, y rama por defecto.
-- `feature/<nombre>`: una por funcionalidad. Sale de `develop` y vuelve a `develop` con `--no-ff`.
-- `release/<versión>` y `hotfix/<nombre>`: según GitFlow.
-
-Commits en inglés con [Conventional Commits](https://www.conventionalcommits.org/) y scope, por ejemplo `feat(catalog): add product search`.
+`main` (versiones entregadas) · `develop` (integración) · `feature/fase-N-…` (una rama por fase, merge `--no-ff`)
+· `release/<versión>`. Commits con Conventional Commits y scope, por ejemplo `feat(stores): add nearby search`.
